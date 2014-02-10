@@ -1,0 +1,5 @@
+{"type":"request","id":"xasdq3213sdfa","cls":"login","data":{"username":"toto","password":"foo"}}
+
+{"type":"request","id":"asdfq3fqaw3aw","cls": "logout"}
+
+{"type":"request","id":"sdf234fw3ww","cls":"reconnect","data":{"session": "asda2ad22da"}}

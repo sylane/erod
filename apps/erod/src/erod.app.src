@@ -1,0 +1,16 @@
+{application, erod,
+ [
+  {description, "erod"},
+  {vsn, "0.1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  sasl,
+                  lager,
+                  cowboy,
+                  jsx
+                 ]},
+  {mod, { erod_app, []}},
+  {env, []}
+ ]}.

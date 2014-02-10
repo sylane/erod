@@ -1,0 +1,11 @@
+.eunit/
+.project
+.settings/
+log/
+ebin/
+deps/
+*.dump
+rel/erod
+rebar
+test/*.beam
+test/logs
