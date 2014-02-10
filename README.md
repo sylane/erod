@@ -1,4 +1,4 @@
 erod
 ====
 
-A document oriented chat server.
+A document oriented messaging server.
