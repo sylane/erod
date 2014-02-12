@@ -2,8 +2,6 @@
 
 -include("erod_internal.hrl").
 
--export([link_session/2]).
--export([unlink_session/2]).
 -export([send/2]).
 -export([safe_send/2]).
 -export([send_error/3]).
@@ -15,29 +13,11 @@
 -export([safe_decode_data/3]).
 
 
-link_session(#?Ctx{connection = Conn}, Session) ->
-    try erlang:link(Conn) of
-        true -> erod_connection:link_session(Conn, Session)
-    catch
-        error:noproc -> {error, noproc}
-    end.
-
-
-unlink_session(#?Ctx{connection = Conn}, Session) ->
-    try erlang:unlink(Conn) of
-        true ->
-            erod_connection:unlink_session(Conn, Session),
-            receive {'EXIT', Conn, _} -> ok after 0 -> ok end
-    catch
-        error:noproc -> {error, noproc}
-    end.
-
-
-send(#?Ctx{connection = Conn, format = Fmt}, Msg) ->
+send(#?Ctx{conn = Conn, fmt = Fmt}, Msg) ->
     Packet = Msg:encode(Fmt, Msg),
     erod_connection:send(Conn, Packet).
 
-safe_send(#?Ctx{connection = Conn, format = Fmt}, Msg) ->
+safe_send(#?Ctx{conn = Conn, fmt = Fmt}, Msg) ->
     try Msg:encode(Fmt, Msg) of
         Packet -> erod_connection:send(Conn, Packet)
     catch
@@ -45,19 +25,19 @@ safe_send(#?Ctx{connection = Conn, format = Fmt}, Msg) ->
     end.
 
 
-send_error(#?Ctx{connection = Conn, format = Fmt}, Class, Error) ->
+send_error(#?Ctx{conn = Conn, fmt = Fmt}, Class, Error) ->
     Packet = erod_message:encode_error(Fmt, Class, Error),
     erod_connection:send(Conn, Packet).
 
 
-reply(#?Ctx{connection = Conn, format = Fmt},
+reply(#?Ctx{conn = Conn, fmt = Fmt},
       #?Msg{type = request, id = Id, cls = Cls}, Data) ->
     Result = #?Msg{type = result, id = Id, cls = Cls, data = Data},
     Packet = erod_message:encode(Fmt, Result),
     erod_connection:send(Conn, Packet).
 
 
-safe_reply(#?Ctx{connection = Conn, format = Fmt},
+safe_reply(#?Ctx{conn = Conn, fmt = Fmt},
            #?Msg{type = request, id = Id, cls = Cls}, Data) ->
     Result = #?Msg{type = result, id = Id, cls = Cls, data = Data},
     try erod_message:encode(Fmt, Result) of
@@ -67,7 +47,7 @@ safe_reply(#?Ctx{connection = Conn, format = Fmt},
     end.
 
 
-reply_error(#?Ctx{connection = Conn, format = Fmt},
+reply_error(#?Ctx{conn = Conn, fmt = Fmt},
             #?Msg{type = request, id = Id, cls = Cls}, Error) ->
     Packet = erod_message:encode_error(Fmt, Cls, Id, Error),
     erod_connection:send(Conn, Packet).
@@ -86,7 +66,7 @@ safe_decode(#?Ctx{}, #?Msg{}, Props, Module)
   when is_tuple(Props), element(1, Props) =:= Module ->
     {ok, Props};
 
-safe_decode(#?Ctx{connection = Conn, format = Fmt},
+safe_decode(#?Ctx{conn = Conn, fmt = Fmt},
        #?Msg{type = request, id = Id, cls = Cls},
        Props, Module) ->
     try {ok, Module:decode(props, Props)}
@@ -104,6 +84,10 @@ safe_decode(#?Ctx{}, _Msg, Props, Module) ->
             {error, Error}
     end.
 
+
+safe_decode_data(_Ctx, #?Msg{data = Data} = Msg, Module)
+  when is_tuple(Data), element(1, Data) =:= Module ->
+    {ok, Msg};
 
 safe_decode_data(Ctx, Msg, Module) ->
     case safe_decode(Ctx, Msg, Msg#?Msg.data, Module) of

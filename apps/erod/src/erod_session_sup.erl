@@ -6,7 +6,7 @@
 
 -export([start_link/0]).
 
--export([start_child/0]).
+-export([start_child/1]).
 
 -export([init/1]).
 
@@ -15,8 +15,8 @@ start_link() ->
     supervisor:start_link({local, ?SESSION_SUP}, ?MODULE, []).
 
 
-start_child() ->
-    supervisor:start_child(?SESSION_SUP, []).
+start_child(SessionToken) ->
+    supervisor:start_child(?SESSION_SUP, [SessionToken]).
 
 
 init([]) ->

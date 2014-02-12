@@ -10,10 +10,26 @@
 -define(ROOM_MANAGER, room_manager).
 
 
--define(Ctx, context).
--record(context,
-        {connection :: pid(),
-         format :: atom()}).
+-define(UserIdent, erod_user_identity).
+-record(erod_user_identity,
+        {username :: binary()}).
+
+-define(UserCred, erod_user_credential).
+-record(erod_user_credential,
+        {identity :: erod_user_identity(),
+         password :: binary()}).
+
+-define(SessPol, erod_session_policy).
+-record(erod_session_policy,
+        {user_id :: pos_integer()}).
+
+-define(Ctx, erod_context).
+-record(erod_context,
+        {fmt :: atom(),
+         conn :: pid(),
+         sess :: pid() | undefined,
+         user :: pid() | undefined,
+         policy :: #erod_session_policy{} | undefined}).
 
 -define(MsgKey, erod_message_key).
 -record(erod_message_key,
@@ -44,3 +60,6 @@
 
 
 -type erod_message_key() :: #erod_message_key{}.
+-type erod_user_identity() :: #erod_user_identity{}.
+-type erod_session_policy() :: #erod_session_policy{}.
+-type erod_context() :: #erod_context{}.

@@ -6,7 +6,7 @@
 
 -export([start_link/0]).
 
--export([route/2]).
+-export([new_session/0]).
 
 -export([init/1,
          handle_call/3,
@@ -24,8 +24,8 @@ start_link() ->
     gen_server:start_link({local, ?SESSION_MANAGER}, ?MODULE, [], []).
 
 
-route(Msg, Ctx) ->
-    gen_server:cast(?SESSION_MANAGER, {route, Msg, Ctx}).
+new_session() ->
+    gen_server:call(?SESSION_MANAGER, new_session).
 
 
 init([]) ->
@@ -34,13 +34,14 @@ init([]) ->
     {ok, #?St{}}.
 
 
+handle_call(new_session, _From, State) ->
+    Token = base64:encode(crypto:strong_rand_bytes(32)),
+    {reply, erod_session_sup:start_child(Token), State};
+
 handle_call(Request, From, State) ->
     lager:error("Unexpected call from ~p: ~p", [From, Request]),
     {stop, {unexpected_call, Request, From}, {error, unexpected_call}, State}.
 
-
-handle_cast({route, Msg, Ctx}, State) ->
-    {noreply, route(Msg, Ctx, State)};
 
 handle_cast(Request, State) ->
     lager:error("Unexpected cast: ~p", [Request]),
@@ -59,21 +60,3 @@ terminate(Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-
-
-route(#?Msg{type = request, cls = login} = Req, Ctx, State) ->
-    case erod_context:safe_decode_data(Ctx, Req, ?MsgLogReq) of
-        {error, _} -> State;
-        {ok, NewReq} ->
-            {ok, Session} = erod_session_sup:start_child(),
-            erod_session:route(Session, NewReq, Ctx),
-            State
-     end;
-
-route(#?Msg{type = request, cls = reconnect} = Req, Ctx, State) ->
-    erod_context:reply_error(Ctx, Req, not_implemented),
-    State;
-
-route(Msg, Ctx, State) ->
-    erod_context:discard(Ctx, Msg),
-    State.

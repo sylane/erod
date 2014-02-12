@@ -1,4 +1,22 @@
+<<<garbage>>>
+
+{"incomplete":
+
+{"type":"spam","cls":"login"}
+
+{"type":"request","cls":"login"}
+
+{"type":"request","id":"sdf3fse4","cls":"login"}
+
+{"type":"request","id":"sdf3fse4","cls":"login","data":42}
+
+{"type":"request","id":"sdf3fse4","cls":"login","data":{"foo":"bar"}}
+
+
+
 {"type":"request","id":"xasdq3213sdfa","cls":"login","data":{"username":"toto","password":"foo"}}
+
+{"type":"request","id":"xasdq3213sdfa","cls":"login","data":{"username":"tata","password":"bar"}}
 
 {"type":"request","id":"asdfq3fqaw3aw","cls": "logout"}
 

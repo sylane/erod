@@ -1,7 +1,15 @@
--module(erod_debug).
+-module(erod_dbg).
+
+-export([tm/1, cm/1]).
 
 -export([trace_module/1]).
 -export([clear_module/1]).
+
+
+tm(Module) -> trace_module(Module).
+
+
+cm(Module) -> clear_module(Module).
 
 
 trace_module(Module) when is_atom(Module) ->
