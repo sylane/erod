@@ -82,7 +82,7 @@ load_user(#?UserIdent{username = <<"foo">>}) ->
 
 load_user(UserIdent) ->
     % Load a user from the storage...
-    random:seed(erlang:now()),
+    _ = random:seed(erlang:now()),
     {ok, #?St{identity = UserIdent,
               user_id = random:uniform(999999999)}}.
 
@@ -100,8 +100,8 @@ make_login_result(SessionToken, State) ->
 
 authenticate(#?UserCred{identity = ReqIdent}, #?St{identity = ProcIdent})
   when ReqIdent =/= ProcIdent ->
-    lagger:error("User process for ~p received an authentication request "
-                 "for a different identity: ~p", [ProcIdent, ReqIdent]),
+    lager:error("User process for ~p received an authentication request "
+                "for a different identity: ~p", [ProcIdent, ReqIdent]),
     {error, internal_error};
 
 authenticate(#?UserCred{password = <<"foo">>}, _State) ->
@@ -128,6 +128,12 @@ route_message(#?Msg{type = request, cls = login} = Req, Ctx, State) ->
     case erod_context:safe_decode_data(Ctx, Req, ?MsgLogReq) of
         {error, _Reason} -> login_failed(Req, Ctx, undefined, State);
         {ok, NewReq} -> validate_login(NewReq, Ctx, State)
+    end;
+
+route_message(#?Msg{type = request, cls = reconnect} = Req, Ctx, State) ->
+    case erod_context:safe_decode_data(Ctx, Req, ?MsgRecReq) of
+        {error, _Reason} -> State;
+        {ok, NewReq} -> validate_reconnect(NewReq, Ctx, State)
     end;
 
 route_message(#?Msg{type = request, cls = logout} = Req, Ctx, State) ->
@@ -158,26 +164,36 @@ validate_login(#?Msg{data = LogReq} = Req,
     end.
 
 
-login_failed(_Req, Ctx, undefined, State) ->
+login_failed(_Req, #?Ctx{sess = Sess, conn = Conn} = Ctx, undefined, State) ->
+    lager:info("Failed login for user ~p with session ~p through "
+               "connection ~p", [State#?St.identity, Sess, Conn]),
     erod_session:disband_context(Ctx),
     State;
 
-login_failed(Req, Ctx, Reason, State) ->
+login_failed(Req, #?Ctx{sess = Sess, conn = Conn} = Ctx, Reason, State) ->
+    lager:info("Failed login for user ~p with session ~p through "
+               "connection ~p: ~p", [State#?St.identity, Sess, Conn, Reason]),
     erod_context:reply_error(Ctx, Req, {login_error, Reason}),
     erod_session:disband_context(Ctx),
     State.
 
 
-perform_login(Req, #?Ctx{sess = Sess} = Ctx, State) ->
+perform_login(Req, #?Ctx{sess = Sess, conn = Conn} = Ctx, State) ->
     SessPol = #?SessPol{user_id = State#?St.user_id},
     NewCtx = Ctx#?Ctx{user = self(), policy = SessPol},
     case erod_session:bind_context(NewCtx) of
         {error, Reason} ->
+            lager:info("Failed logging in user ~p with session ~p through "
+                       "connection ~p: ~p",
+                       [State#?St.identity, Sess, Conn, Reason]),
             erod_context:reply_error(Ctx, Req, {login_error, Reason}),
             State;
         {ok, SessionToken} ->
             try erlang:link(Sess) of
                 true ->
+                    lager:info("Successful login for user ~p with session ~p "
+                               "through connection ~p",
+                               [State#?St.identity, Sess, Conn]),
                     LogRes = make_login_result(SessionToken, State),
                     erod_context:reply(Ctx, Req, LogRes),
                     add_session(Sess, State)
@@ -188,8 +204,51 @@ perform_login(Req, #?Ctx{sess = Sess} = Ctx, State) ->
     end.
 
 
-perform_logout(Req, #?Ctx{conn = Conn, sess = Sess, user = User} = Ctx, State)
-  when User =:= self(), Conn =/= undefine, Sess =/= undefined ->
+validate_reconnect(Req, #?Ctx{sess = Sess, conn = Conn} = Ctx, State) ->
+    case has_session(Sess, State) of
+        true -> perform_reconnect(Req, Ctx, State);
+        false ->
+            lager:warning("Cannot rebind connection ~p "
+                          "through unknown session ~p", [Conn, Sess]),
+            Error = {reconnect_error, {internal_error, unknown_session}},
+            erod_context:reply_error(Ctx, Req, Error),
+            State
+    end.
+
+
+
+perform_reconnect(Req, #?Ctx{sess = Sess, conn = Conn} = Ctx, State) ->
+    #?Msg{data = #?MsgRecReq{session = Token}} = Req,
+    SessPol = #?SessPol{user_id = State#?St.user_id},
+    NewCtx = Ctx#?Ctx{user = self(), policy = SessPol},
+    case erod_session:bind_context(NewCtx) of
+        {error, Reason} ->
+            lager:info("Failed reconnecting user ~p with session ~p through "
+                       "connection ~p: ~p",
+                       [State#?St.identity, Sess, Conn, Reason]),
+            erod_context:reply_error(Ctx, Req, {reconnect_error, Reason}),
+            State;
+        {ok, Token} ->
+            lager:info("Successfuly reconnected user ~p with session ~p "
+                       "through connection ~p",
+                       [State#?St.identity, Sess, Conn]),
+            erod_context:reply(Ctx, Req, undefined),
+            State;
+        {ok, OtherToken} ->
+            %FIXME: Remove this defensive code.
+            lager:error("Reconnection of user ~p with session ~p "
+                        "through connection ~p went bad, session gave "
+                        "token ~p when ~p was expected, terminating...",
+                        [State#?St.identity, Sess, Conn, OtherToken, Token]),
+            Error = {reconnect_error, {internal_error, bad_session}},
+            erod_context:reply_error(Ctx, Req, Error),
+            erod_session:disband_context(NewCtx),
+            State
+    end.
+
+
+perform_logout(Req, #?Ctx{sess = Sess, user = User} = Ctx, State)
+  when User =:= self(), Sess =/= undefined ->
     case has_session(Sess, State) of
         false ->
             lager:error("Received logout request for unknown session ~p", [Sess]),

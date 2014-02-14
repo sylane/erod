@@ -58,6 +58,10 @@
          home :: erod_message_key(),
          config :: proplists:proplist()}).
 
+-define(MsgRecReq, erod_message_reconnect_request).
+-record(erod_message_reconnect_request,
+        {session :: binary()}).
+
 
 -type erod_message_key() :: #erod_message_key{}.
 -type erod_user_identity() :: #erod_user_identity{}.

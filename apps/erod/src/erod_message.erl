@@ -11,10 +11,7 @@
 
 
 decode(json, Json) ->
-    case decode_json(Json) of
-        {incomplete, _} -> error({format_error, incomplete_json});
-        Jsx -> decode(jsx, Jsx)
-    end;
+    decode(jsx, decode_json(Json));
 
 decode(jsx, Jsx) ->
     case erod_props:decode(jsx, Jsx) of
@@ -101,7 +98,9 @@ encode_error_reply(Format, #?Msg{type = request, id = Id, cls = Cls}, Error) ->
 
 
 decode_json(Json) ->
-    try jsx:decode(Json)
+    try jsx:decode(Json) of
+        {incomplete, _} -> error({format_error, incomplete_json});
+        Jsx -> Jsx
     catch error:badarg ->
               error({format_error, bad_json})
     end.
@@ -132,17 +131,17 @@ encode_error_message(jsx, Class, Id, ErrorData) ->
      {<<"data">>, encode_error_data(jsx, ErrorData)}].
 
 
-encode_error_data(jsx, {Code, undefined, undefined}) ->
-    [{<<"code">>, erod_jsx:integer_value(code, Code)}];
-
-encode_error_data(jsx, {Code, Msg, undefined}) ->
-    [{<<"code">>, erod_jsx:integer_value(code, Code)},
-     {<<"msg">>, erod_jsx:binary_value(code, Msg)}];
-
-encode_error_data(jsx, {Code, undefined, Debug}) ->
-    DebugData = erlang:iolist_to_binary(io_lib:format("~w", [Debug])),
-    [{<<"code">>, erod_jsx:integer_value(code, Code)},
-     {<<"debug">>, erod_jsx:binary_value(debug, DebugData)}];
+%% encode_error_data(jsx, {Code, undefined, undefined}) ->
+%%     [{<<"code">>, erod_jsx:integer_value(code, Code)}];
+%%
+%% encode_error_data(jsx, {Code, Msg, undefined}) ->
+%%     [{<<"code">>, erod_jsx:integer_value(code, Code)},
+%%      {<<"msg">>, erod_jsx:binary_value(code, Msg)}];
+%%
+%% encode_error_data(jsx, {Code, undefined, Debug}) ->
+%%     DebugData = erlang:iolist_to_binary(io_lib:format("~w", [Debug])),
+%%     [{<<"code">>, erod_jsx:integer_value(code, Code)},
+%%      {<<"debug">>, erod_jsx:binary_value(debug, DebugData)}];
 
 encode_error_data(jsx, {Code, Msg, Debug}) ->
     DebugData = erlang:iolist_to_binary(io_lib:format("~w", [Debug])),

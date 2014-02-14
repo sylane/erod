@@ -42,7 +42,7 @@ find_user(#?UserIdent{} = UserIdent) ->
 init([]) ->
     lager:info("Starting user manager...", []),
     process_flag(trap_exit, true),
-    ets:new(?USER_IDENTIY_MAP, [named_table]),
+    _ = ets:new(?USER_IDENTIY_MAP, [named_table]),
     {ok, #?St{}}.
 
 

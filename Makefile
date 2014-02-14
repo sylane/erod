@@ -7,7 +7,7 @@ all: rebar
 	@./rebar compile
 
 #release: xref dialyze test fast-release
-release: fast-release
+release: xref dialyze fast-release
 
 fast-release: all
 	@rm -rf rel/$(APPLICATION) || exit 0
@@ -18,12 +18,13 @@ test: all
 
 dialyze: all ../dialyzer.plt
 	@dialyzer --plt ../dialyzer.plt $(DIALYZER_WARNINGS) --src \
-	          apps/erod/src || exit 0
+	          -I deps deps/cowboy/src deps/cowlib/src deps/ranch/src \
+	          deps/jsx/src apps/erod/src || exit 0
 
 ../dialyzer.plt:
 	dialyzer --build_plt --output_plt ../dialyzer.plt \
            --apps erts kernel stdlib mnesia crypto inets xmerl sasl \
-                       compiler debugger ssl tools
+                       compiler debugger ssl tools runtime_tools
 
 xref: all
 	@./rebar xref skip_deps=true

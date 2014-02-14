@@ -1,3 +1,6 @@
+%%% FIXME: A connection without session will never die.
+%%% FIXME: A connection spawns a session every login message.
+
 -module(erod_connection).
 
 -behaviour(cowboy_websocket_handler).
@@ -21,7 +24,7 @@
 
 
 -record(?St, {ping_timer :: reference() | undefined,
-              context :: erod_context() | undefined}).
+              ctx :: erod_context() | undefined}).
 
 
 bind_context(#?Ctx{conn = Connection} = Ctx) ->
@@ -71,9 +74,9 @@ websocket_info({'$call', From, Ref, Request}, Req, State) ->
         {ok, Result, NewReq, NewState} ->
             From ! {'$ack', Ref, Result},
             {ok, NewReq, NewState};
-        {reply, Reply, Result, NewReq, NewState} ->
+        {error, Reason, Result, NewReq, NewState} ->
             From ! {'$ack', Ref, Result},
-            {reply, Reply, NewReq, NewState}
+            {stop, Reason, NewReq, NewState}
     end;
 
 websocket_info(Info, Req, State) ->
@@ -83,23 +86,34 @@ websocket_info(Info, Req, State) ->
 
 websocket_terminate(_Reason, _Req, State) ->
     lager:debug("Terminating websocket handler...", []),
-    cancel_keepalive(State),
+    _ = cancel_keepalive(State),
     ok.
 
 
 websocket_call({bind_context, #?Ctx{sess = Sess} = Ctx}, Req,
-               #?St{context = undefined} = State) ->
+               #?St{ctx = undefined} = State) ->
     lager:debug("Binding connection to session ~p...", [Sess]),
-    {ok, ok, Req, State#?St{context = Ctx}};
+    {ok, ok, Req, State#?St{ctx = Ctx}};
+
+websocket_call({bind_context, #?Ctx{sess = NewSess}}, Req,
+               #?St{ctx = CurrSess} = State) ->
+    lager:warning("Cannot bind connection to session ~p, "
+                  "already bound to session ~p...", [NewSess, CurrSess]),
+    {ok, {error, {internal_error, already_bound}}, Req, State};
 
 websocket_call({disband_context, #?Ctx{sess = Sess} = Ctx}, Req,
-               #?St{context = Ctx} = State) ->
+               #?St{ctx = Ctx} = State) ->
     lager:debug("Detaching connection from session ~p...", [Sess]),
-    {ok, ok, Req, State#?St{context = undefined}};
+    catch erlang:unlink(Sess),
+    {ok, ok, Req, State#?St{ctx = undefined}};
+
+websocket_call({disband_context, Ctx}, Req, State) ->
+    lager:warning("Cannot detach from unknown context: ~p...", [Ctx]),
+    {ok, {error, {internal_error, bad_context}}, Req, State};
 
 websocket_call(Request, Req, State) ->
     lager:error("Unexpected call: ~p", [Request]),
-    {stop, {unexpected_call, Request}, {error, unexpected_call}, Req, State}.
+    {error, {unexpected_call, Request}, {error, unexpected_call}, Req, State}.
 
 
 call(Connection, Msg) ->
@@ -116,7 +130,7 @@ schedule_keepalive(State) ->
 
 
 cancel_keepalive(State) ->
-    erlang:cancel_timer(State#?St.ping_timer),
+    _ = erlang:cancel_timer(State#?St.ping_timer),
     State#?St{ping_timer = undefined}.
 
 
@@ -129,24 +143,25 @@ decode_message(Json, State) ->
     end.
 
 
-handle_message(Msg, #?St{context = undefined} = State) ->
+handle_message(Msg, #?St{ctx = undefined} = State) ->
     Ctx = #?Ctx{conn = self(), fmt = json},
     lager:debug("Routing through context-less connection: ~p", [Msg]),
     route_without_context(Msg, Ctx, State);
 
-handle_message(Msg, #?St{context = Ctx} = State) ->
+handle_message(Msg, #?St{ctx = Ctx} = State) ->
     lager:debug("Routing through connection: ~p", [Msg]),
-    route_message(Msg, Ctx, State).
+    route_with_context(Msg, Ctx, State).
 
 
 route_without_context(#?Msg{type = request, cls = login} = Req, Ctx, State) ->
-    case erod_session_manager:new_session() of
-        {error, Reason} ->
-            Error = {internal_error, Reason},
-            {reply, erod_message:encode_error_reply(json, Req, Error), State};
-        {ok, Session} ->
-            erod_session:route(Session, Req, Ctx),
-            {ok, State}
+    route_login(Req, Ctx, State);
+
+route_without_context(#?Msg{type = request, cls = reconnect} = Req, Ctx, State) ->
+    try ?MsgRecReq:decode(props, Req#?Msg.data) of
+        Data -> route_reconnect(Req#?Msg{data = Data}, Ctx, State)
+    catch
+        error:Error ->
+            {reply, erod_message:encode_error_reply(json, Req, Error), State}
     end;
 
 route_without_context(#?Msg{type = request} = Req, _Ctx, State) ->
@@ -158,6 +173,29 @@ route_without_context(Msg, _Ctx, State) ->
     {ok, State}.
 
 
-route_message(Msg, Ctx, State) ->
+route_login(Req, Ctx, State) ->
+    case erod_session_manager:new_session() of
+        {error, Reason} ->
+            Error = {login_error, {internal_error, Reason}},
+            {reply, erod_message:encode_error_reply(json, Req, Error), State};
+        {ok, Session} ->
+            erod_session:route(Session, Req, Ctx),
+            {ok, State}
+    end.
+
+
+route_reconnect(Req, Ctx, State) ->
+    #?Msg{data = #?MsgRecReq{session = Token}} = Req,
+    case erod_session_manager:find_session(Token) of
+        {error, Reason} ->
+            Error = {reconnect_error, Reason},
+            {reply, erod_message:encode_error_reply(json, Req, Error), State};
+        {ok, Session} ->
+            erod_session:route(Session, Req, Ctx),
+            {ok, State}
+    end.
+
+
+route_with_context(Msg, Ctx, State) ->
     erod_session:route(Ctx#?Ctx.sess, Msg, Ctx),
     {ok, State}.
