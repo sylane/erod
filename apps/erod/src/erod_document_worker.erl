@@ -1,4 +1,4 @@
--module(erod_room).
+-module(erod_document_worker).
 
 -behaviour(gen_server).
 
@@ -23,7 +23,7 @@ start_link() ->
 
 
 init([]) ->
-    lager:debug("Starting user...", []),
+    lager:debug("Starting document worker...", []),
     process_flag(trap_exit, true),
     {ok, #?St{}}.
 
@@ -44,7 +44,7 @@ handle_info(Info, State) ->
 
 
 terminate(Reason, _State) ->
-    lager:debug("Terminating room: ~p", [Reason]),
+    lager:debug("Terminating document worker: ~p", [Reason]),
     ok.
 
 

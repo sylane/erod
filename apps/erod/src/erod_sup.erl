@@ -18,6 +18,5 @@ init([]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(erod_users_sup, supervisor),
             ?CHILD(erod_sessions_sup, supervisor),
-            ?CHILD(erod_groups_sup, supervisor),
-            ?CHILD(erod_rooms_sup, supervisor)]} }.
+            ?CHILD(erod_documents_sup, supervisor)]}}.
 

@@ -1,4 +1,4 @@
--module(erod_rooms_sup).
+-module(erdom_sup).
 
 -behaviour(supervisor).
 
@@ -14,8 +14,6 @@ start_link() ->
 
 
 init([]) ->
-    lager:info("Starting rooms supervisor...", []),
-    {ok, { {rest_for_one, 5, 10},
-           [?CHILD(erod_room_manager, worker),
-            ?CHILD(erod_room_sup, supervisor)]} }.
+    lager:debug("Starting root supervisor...", []),
+    {ok, { {one_for_one, 5, 10}, []}}.
 

@@ -63,5 +63,5 @@ Item
 Content
 -------
 
-    [{"key": {"type": "msg", "id": [2132332, 434211]}, "time": "20070405T123000", "text": "hi !", read=false}
+    [{"key": {"type": "msg", "id": [2132332, 434211]}, "sender": {"type": "user", "id": 32131}, time": "20070405T123000", "text": "hi !", read=false}
     ]

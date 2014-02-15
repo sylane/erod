@@ -1,6 +1,6 @@
-{application, erod,
+{application, erdom,
  [
-  {description, "Erlang Remote Operative Documents"},
+  {description, "Erlang Remote Document Oriented Messaging"},
   {vsn, "0.1"},
   {registered, []},
   {applications, [
@@ -9,8 +9,9 @@
                   sasl,
                   lager,
                   cowboy,
-                  jsx
+                  jsx,
+                  erod
                  ]},
-  {mod, { erod_app, []}},
+  {mod, { erdom_app, []}},
   {env, []}
  ]}.

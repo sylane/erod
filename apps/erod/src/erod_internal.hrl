@@ -1,13 +1,11 @@
 
--define(SESSION_SUP, session_supervisor).
 -define(USER_SUP, user_supervisor).
--define(GROUP_SUP, group_supervisor).
--define(ROOM_SUP, room_supervisor).
+-define(SESSION_SUP, session_supervisor).
+-define(DOCUMENT_SUP, document_supervisor).
 
--define(SESSION_MANAGER, session_manager).
 -define(USER_MANAGER, user_manager).
--define(GROUP_MANAGER, group_manager).
--define(ROOM_MANAGER, room_manager).
+-define(SESSION_MANAGER, session_manager).
+-define(DOCUMENT_MANAGER, document_manager).
 
 
 -define(UserIdent, erod_user_identity).

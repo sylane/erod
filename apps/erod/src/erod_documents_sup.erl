@@ -1,4 +1,4 @@
--module(erod_groups_sup).
+-module(erod_documents_sup).
 
 -behaviour(supervisor).
 
@@ -14,8 +14,8 @@ start_link() ->
 
 
 init([]) ->
-    lager:info("Starting groups supervisor...", []),
+    lager:info("Starting documents supervisor...", []),
     {ok, { {rest_for_one, 5, 10},
-           [?CHILD(erod_group_manager, worker),
-            ?CHILD(erod_group_sup, supervisor)]} }.
+           [?CHILD(erod_document_manager, worker),
+            ?CHILD(erod_document_sup, supervisor)]} }.
 

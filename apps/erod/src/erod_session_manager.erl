@@ -37,6 +37,7 @@ find_session(Token) when is_binary(Token) ->
         [] -> {error, session_not_found};
         [{_, SessionPid}] -> {ok, SessionPid}
     catch
+        % FIXME: Remove this defensive code.
         eror:badarg ->
             lager:error("Tried to find a session by its token but the ETS "
                         "table does not seem to exist yet"),
@@ -68,8 +69,10 @@ handle_cast(Request, State) ->
     {stop, {unexpected_cast, Request}, State}.
 
 
-handle_info({'EXIT', Pid, _Reason}, State) ->
-    {noreply, remove_session(Pid, State)};
+handle_info({'DOWN', _, process, Pid, _Reason}, State) ->
+    lager:debug("Session ~p died, removing it from the lookup table...", [Pid]),
+    {ok, NewState} = remove_session(Pid, State),
+    {noreply, NewState};
 
 handle_info(Info, State) ->
     lager:warning("Unexpected message: ~p", [Info]),
@@ -90,26 +93,21 @@ start_session(#?St{pid_to_token = P2T, token_to_pid = T2P} = State) ->
     {ok, Token, NewState} = find_unique_token(State),
     case erod_session_sup:start_child(Token) of
         {error, Reason} -> {error, Reason, NewState};
-        {ok, Pid} ->
-            try erlang:link(Pid) of
-                true ->
-                    Item = {Token, Pid},
-                    ets:insert(P2T, Item),
-                    ets:insert(T2P, Item),
-                    {ok, Pid, NewState}
-            catch
-                error:badarg ->
-                    {error, session_died, NewState}
-            end
+        {ok, SessionPid} ->
+            erlang:monitor(process, SessionPid),
+            Item = {Token, SessionPid},
+            ets:insert(P2T, Item),
+            ets:insert(T2P, Item),
+            {ok, SessionPid, NewState}
     end.
 
 
-remove_session(Pid, #?St{pid_to_token = P2T, token_to_pid = T2P} = State) ->
-    case ets:lookup(P2T, Pid) of
+remove_session(SessPid, #?St{pid_to_token = P2T, token_to_pid = T2P} = State) ->
+    case ets:lookup(P2T, SessPid) of
         [] -> {ok, State};
-        [{_Token, Pid} = Item] ->
-            ets:delete_object(T2P, Item),
-            ets:delete_object(P2T, Item),
+        [{Token, SessPid}] ->
+            ets:delete(T2P, Token),
+            ets:delete(P2T, SessPid),
             {ok, State}
     end.
 
