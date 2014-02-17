@@ -5,6 +5,7 @@
          from_ordset/1,
          to_list/1,
          size/1,
+         index/3,
          insert/3,
          delete/3,
          smallest/1,
@@ -39,6 +40,10 @@ to_list({?MODULE, Tree}) ->
 
 size({?MODULE, Tree}) ->
     tree_size(Tree).
+
+
+index(Value, OrderFun, {?MODULE, Tree}) ->
+    tree_index(Value, OrderFun, Tree).
 
 
 insert(Value, OrderFun, {?MODULE, Tree}) ->
@@ -86,6 +91,23 @@ tree_to_list({Value, _Size, _Weight, Smaller, Larger}, Acc) ->
 tree_to_list(nil, Acc) -> Acc.
 
 
+tree_size(nil) -> 0;
+
+tree_size({_Value, Size, _Weight, _Smaller, _Larger}) -> Size.
+
+
+tree_index(RefVal, _OrderFun, {RefVal, _Size, _Weight, Smaller, _Larger}) ->
+    tree_size(Smaller) + 1;
+
+tree_index(Value, OrderFun, {RefVal, _Size, _Weight, Smaller, Larger}) ->
+    case OrderFun(Value, RefVal) of
+        true ->
+            tree_index(Value, OrderFun, Smaller);
+        false ->
+            tree_size(Smaller) + 1 + tree_index(Value, OrderFun, Larger)
+    end.
+
+
 tree_insert(RefVal, _OrderFun, {RefVal, _Size, _Weight, _Sm, _Lg}, _WRef) ->
     erlang:error({key_already_exists, RefVal});
 
@@ -124,11 +146,6 @@ tree_insert(Value, _OrderFun, nil, 0) ->
 
 tree_insert(Value, _OrderFun, nil, _) ->
     {ok, 1, combinate(Value, nil, nil)}.
-
-
-tree_size(nil) -> 0;
-
-tree_size({_Value, Size, _Weight, _Smaller, _Larger}) -> Size.
 
 
 tree_delete(Value, _OrderFun, {Value, _Size, _Weight, Smaller, Larger}) ->
