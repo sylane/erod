@@ -1,9 +1,10 @@
 %%% Requirments:
 %%%    - Fast Item lookup by key
 %%%    - Ordered by given comparison function
-%%%    - Relatively insert/delete/update by key
+%%%    - Relatively fast insert/delete/update by key
 %%%    - Optional reordering on update.
-%%%    - Keep track of the changes in a JSON patch-like format.
+%%%    - Keep track of the version
+%%%    - Keep a log of changes in a JSON patch-like format.
 
 -module(erod_document_page).
 
