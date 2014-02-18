@@ -1,21 +1,22 @@
-erod
+﻿erod
 ====
 
 Erlang Remote Operative Documents.
 
 !!! THIS PROJECT IS STILL IN PROTOTYPING PHASE !!!
 
-A framework to build services for clients without reliable connection.
+It is a framework to build services for clients without reliable connection.
 
 The goal is to keep all the service state server-side as a dynamic set
 of versioned documents.
 
-Each documents have a unique key. They can interact with each others.
+Each documents have a unique key and they can interact with each others.
 They can request to be notified of other documents changes
-to stay synchronized and send events to other documents.
+to stay synchronized and send events to other documents or do whatever
+a Erlang process could do.
 
 Each document have a structured content and a list of children.
-Each child represente a summary of another document and contains its key.
+Each child represent a summary of another document and contains its key.
 A document can maintain multiple children views each with its own
 ordering and summary data structure.
 
@@ -25,7 +26,7 @@ If the client specifies a local version identifier, the server may return a patc
 instead of a full entity with a new version; this patch applied
 to the local entity will update it the the new version.
 
-When retriving entities, the client can subscribe to the document.
+When retrieving entities, the client can subscribe to the document.
 When subscribed, the client receives notifications that some documents content
 or children changed. The notification only contains the documents key, the client
 is free to update all or part of the changed documents as needed.
@@ -33,7 +34,7 @@ In addition, the client can subscribe and unsubscribe to any document
 directly without having to retrieve anything.
 
 The notifications are sent periodically and by consolidated block to prevent
-notification flood. If a document changes multiple times in quick succesions,
+notification flood. If a document changes multiple times in quick successions,
 the client receives only one reference to it in its next notification block.
 
 The client confirms the reception of the notification blocks to prevent any
@@ -41,7 +42,7 @@ temporary network outage to flood the client when recovering connectivity.
 
 The clients may cache these document parts locally like a browser web,
 and refresh them asynchronously as the user is browsing the data;
-it may do some pre-fetching to optimize the rendering.
+it may do some prefetching to optimize the rendering.
 
 To interact with these document the client can send a patch for a specific
 document content; the server-side document's logic validates the changes,
