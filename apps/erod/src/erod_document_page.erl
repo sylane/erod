@@ -8,146 +8,200 @@
 
 -module(erod_document_page).
 
--export([new/1,
+-export([new/0,
          from_ordered/2,
-         to_list/1,
-         lookup/2,
-         update/4,
-         delete/2,
-         insert/3]).
+         to_list/2,
+         insert/5,
+         delete/4,
+         update_inplace/6,
+         update_order/6,
+         commit/1,
+         get_patch/2]).
 
 -define(Page, ?MODULE).
--record(?Page, {compare,
-                items,
-                indice,
+-record(?Page, {indice,
                 first,
                 last,
-                ver,
-                log}).
+                verlog}).
 
 
-new(CompareFun) ->
-    #?Page{compare = CompareFun,
-           items = erod_maps:new(),
-           indice = erod_indices:new(),
+new() ->
+    #?Page{indice = erod_indices:new(),
            first = undefined, last = undefined,
-           ver = 0, log = []}.
+           verlog = erod_document_verlog:new()}.
 
 
-from_ordered(CompareFun, []) -> new(CompareFun);
+from_ordered([], _Map) -> new();
 
-from_ordered(CompareFun, ValOrdDict) ->
-    KeyOrdDict = lists:keysort(1, ValOrdDict),
-    Items = erod_maps:from_orddict(KeyOrdDict),
+from_ordered(ValOrdDict, Map) ->
     Indice = erod_indices:from_ordered(ValOrdDict),
     First = hd(ValOrdDict),
     LastKey = erod_indice:largest(Indice),
-    Last = {LastKey, erod_maps:value(LastKey)},
-    #?Page{compare = CompareFun,
-           items = Items, indice = Indice,
+    Last = {LastKey, erod_maps:value(LastKey, Map)},
+    #?Page{indice = Indice,
            first = First, last = Last,
-           ver = 0, log = []}.
+           verlog = erod_document_verlog:new()}.
 
 
-to_list(#?Page{items = Items, indice = Indice}) ->
-    erod_indices:to_list(Items, Indice).
+to_list(Map, #?Page{indice = Indice}) ->
+    erod_indices:to_list(Map, Indice).
 
 
-lookup(Key, #?Page{items = Items}) ->
-    erod_maps:lookup(Key, Items).
+insert(Key, Value, CompareFun, Map, Page) ->
+    #?Page{indice = Indice} = Page,
+    {Idx, Indice2} = erod_indices:insert(Key, Value, CompareFun, Map, Indice),
+    Size = erod_indices:size(Indice2),
+    Page2 = Page#?Page{indice = Indice2},
+    Page3 = insert_fix_barrier(Value, Idx, Size, Page2),
+    add_patch({add, [Idx], Value}, Page3).
+
+
+delete(Key, CompareFun, Map, Page) ->
+    #?Page{indice = Indice} = Page,
+    Size = erod_indices:size(Indice),
+    {Idx, Indice2} = erod_indices:delete(Key, CompareFun, Map, Indice),
+    Page2 = Page#?Page{indice = Indice2},
+    Page3 = delete_fix_barrier(Idx, Size, Map, Page2),
+    add_patch({remove, [Idx]}, Page3).
 
 
 %%% Not changing the order
-update(Key, Value, Patch, Page) ->
-    #?Page{compare = CompareFun, items = Items, indice = Indice} = Page,
-    Idx = erod_indices:index(Key, Value, CompareFun, Items, Indice),
-    NewItems = erod_maps:update(Key, Value, Items),
-    NewPage = Page#?Page{items = NewItems},
-    add_patch(Idx, Patch, update_fix_barrier(Key, Value, NewPage)).
+update_inplace(Key, Value, Patch, CompareFun, Map, Page) ->
+    #?Page{indice = Indice} = Page,
+    Idx = erod_indices:index(Key, Value, CompareFun, Map, Indice),
+    Size = erod_indices:size(Indice),
+    Page2 = update_fix_barrier(Value, Idx, Idx, Size, Map, Page),
+    add_patch(Idx, Patch, Page2).
 
 
-delete(Key, Page) ->
-    #?Page{compare = CompareFun, items = Items, indice = Indice} = Page,
-    {Idx, NewIndice} = erod_indices:delete(Key, CompareFun, Items, Indice),
-    NewItems = erod_maps:delete(Key, Items),
-    NewPage = Page#?Page{items = NewItems, indice = NewIndice},
-    add_patch([{remove, [Idx]}], delete_fix_barrier(Key, NewPage)).
+update_order(Key, Value, Patch, CompareFun, Map, Page) ->
+    #?Page{indice = Indice} = Page,
+    case is_local(Value, CompareFun, Page) of
+        false ->
+            Size = erod_indice:size(Indice),
+            {Idx, Indice2} = erod_indice:delete(Key, Value, CompareFun, Map, Indice),
+            Page2 = Page#?Page{indice = Indice2},
+            Page3 = delete_fix_barrier(Idx, Size, Map, Page2),
+            {deleted, add_patch([{remove, [Idx]}], Page3)};
+        true ->
+            {From, Indice2} = erod_indice:delete(Key, Value, CompareFun, Map, Indice),
+            {To, Indice3} = erod_indice:insert(Key, Value, CompareFun, Map, Indice2),
+            Size = erod_indices:size(Indice3),
+            Page2 = Page#?Page{indice = Indice3},
+            Page3 = update_fix_barrier(Value, From, To, Size, Map, Page2),
+            {ok, add_patch({move, [From], [To]}, add_patch(From, Patch, Page3))}
+    end.
 
 
-insert(Key, Value, Page) ->
-    #?Page{compare = CompFun, items = Items, indice = Indice} = Page,
-    NewItems = erod_maps:insert(Key, Value, Items),
-    {Idx, NewIndice} = erod_indices:insert(Key, Value, CompFun, Items, Indice),
-    NewPage = Page#?Page{items = NewItems, indice = NewIndice},
-    Size = erod_map:size(NewItems),
-    add_patch([{add, [Idx], Value}],
-              insert_fix_barrier(Key, Value, Idx, Size, NewPage)).
+commit(#?Page{verlog = VerLog} = Page) ->
+    Page#?Page{verlog = erod_document_verlog:commit(VerLog)}.
 
 
-add_patch_entry(_Entry, Page) ->
-    Page.
+get_patch(FromVer, #?Page{verlog = VerLog}) ->
+    erod_document_verlog:get_patch(FromVer, VerLog).
 
 
-add_patch(_Patch, Page) ->
-    Page.
 
 
-add_patch(_Idx, [], Page) ->
-    Page;
 
-add_patch(Idx, [{remove, Path} |Patch], Page) ->
-    NewEntry = {remove, [Idx| Path]},
-    add_patch(Idx, Patch, add_patch_entry(NewEntry, Page));
-
-add_patch(Idx, [{Op, Path, Value} |Patch], Page)
-  when Op =:= add; Op =:= replace ->
-    NewEntry = {Op, [Idx| Path], Value},
-    add_patch(Idx, Patch, add_patch_entry(NewEntry, Page));
-
-add_patch(Idx, [{Op, Path1, Path2} |Patch], Page)
-  when Op =:= move; Op =:= copy ->
-    NewEntry = {Op, [Idx| Path1], [Idx| Path2]},
-    add_patch(Idx, Patch, add_patch_entry(NewEntry, Page)).
+add_patch(Patch, #?Page{verlog = VerLog} = Page) ->
+    Page#?Page{verlog = erod_document_verlog:add_patch(Patch, VerLog)}.
 
 
-update_fix_barrier(Key, Value, #?Page{last = {Key, _}, first = {Key, _}} = Page) ->
-    Page#?Page{first = {Key, Value}, last = {Key, Value}};
-
-update_fix_barrier(Key, Value, #?Page{first = {Key, _}} = Page) ->
-    Page#?Page{first = {Key, Value}};
-
-update_fix_barrier(Key, Value, #?Page{last = {Key, _}} = Page) ->
-    Page#?Page{last = {Key, Value}};
-
-update_fix_barrier(_Key, _Value, Page) -> Page.
+add_patch(Prefix, Patch, #?Page{verlog = VerLog} = Page) ->
+    Page#?Page{verlog = erod_document_verlog:add_patch(Prefix, Patch, VerLog)}.
 
 
-delete_fix_barrier(Key, #?Page{last = {Key, _}, first = {Key, _}} = Page) ->
+is_local(Value, CompareFun, #?Page{first = First, last = Last}) ->
+    (not CompareFun(Value, First)) andalso CompareFun(Value, Last).
+
+
+%%% Size BEFORE deletion
+delete_fix_barrier(1, 1, _Map, Page) ->
+    % The last value has been deleted
     Page#?Page{first = undefined, last = undefined};
 
-delete_fix_barrier(Key, #?Page{first = {Key, _}} = Page) ->
-    #?Page{items = Items, indice = Indice} = Page,
-    FirstKey = erod_indices:smallest(Indice),
-    {value, FirstVal} = erod_maps:lookup(FirstKey, Items),
-    Page#?Page{first = {FirstKey, FirstVal}};
+delete_fix_barrier(1, 2, _Map, Page) ->
+    % The first value has been deleted and there is only one left
+    Page#?Page{first = Page#?Page.last};
 
-delete_fix_barrier(Key, #?Page{last = {Key, _}} = Page) ->
-    #?Page{items = Items, indice = Indice} = Page,
-    LastKey = erod_indices:largest(Indice),
-    {value, LastVal} = erod_maps:lookup(LastKey, Items),
-    Page#?Page{last = {LastKey, LastVal}};
+delete_fix_barrier(2, 2, _Map, Page) ->
+    % The last value has been deleted and there is only one left
+    Page#?Page{last = Page#?Page.first};
 
-delete_fix_barrier(_Key, Page) -> Page.
+delete_fix_barrier(1, _Size, Map, Page) ->
+    % The first value has been delete
+    Page#?Page{first = erod_indices:smallest_value(Map, Page#?Page.indice)};
+
+delete_fix_barrier(From, From, Map, Page) ->
+    % The last value has been delete
+    Page#?Page{last = erod_indices:largest_value(Map, Page#?Page.indice)};
+
+delete_fix_barrier(_From, _Sie, _Map, Page) ->
+    % The change is not relevent for the barrier
+    Page.
 
 
-insert_fix_barrier(Key, Value, 1, 1,
-                   #?Page{last = undefined, first = undefined} = Page) ->
-    Page#?Page{first = {Key, Value}, last = {Key, Value}};
+%%% Size AFTER insertion
+insert_fix_barrier(Value, 1, 1, Page) ->
+    % The first value to be inserted
+    Page#?Page{first = Value, last = Value};
 
-insert_fix_barrier(Key, Value, 1, _, Page) ->
-    Page#?Page{first = {Key, Value}};
+insert_fix_barrier(Value, 1, _, Page) ->
+    % The value has been inserted at the first position
+    Page#?Page{first = Value};
 
-insert_fix_barrier(Key, Value, Idx, Idx, Page) ->
-    Page#?Page{last = {Key, Value}};
+insert_fix_barrier(Value, Idx, Idx, Page) ->
+    % The value has been inserted at the last position
+    Page#?Page{last = Value};
 
-insert_fix_barrier(_Key, _Value, _Idx, _Size, Page) -> Page.
+insert_fix_barrier(_Value, _Idx, _Size, Page) ->
+    % The value position is not relevent for the barrier
+    Page.
+
+
+update_fix_barrier(Value, 1, 1, 1, _Map, Page) ->
+    % The only value changed
+    Page#?Page{first = Value, last = Value};
+
+update_fix_barrier(Value, 1, 1, _Size, _Map, Page) ->
+    % The first value changed
+    Page#?Page{first = Value};
+
+update_fix_barrier(Value, Idx, Idx, Idx, _Map, Page) ->
+    % The last value changed
+    Page#?Page{last = Value};
+
+update_fix_barrier(_Value, Idx, Idx, _Size, _Map, Page) ->
+    % The value index did not change and it is neither first or last
+    Page;
+
+update_fix_barrier(Value, 1, To, To, Map, Page) ->
+    % The value moved from the first position to the last position
+    NewFirst = erod_indices:smallest_value(Map, Page#?Page.indice),
+    Page#?Page{first = NewFirst, last = Value};
+
+update_fix_barrier(Value, To, 1, To, Map, Page) ->
+    % The value moved from the last position to the first position
+    NewLast = erod_indices:largest_value(Map, Page#?Page.indice),
+    Page#?Page{first = Value, last = NewLast};
+
+update_fix_barrier(Value, _From, To, To, _Map, Page) ->
+    % The value became to the last one
+    Page#?Page{last = Value};
+
+update_fix_barrier(_Value, From, _To, From, Map, Page) ->
+    % The value is not the last one anymore
+    Page#?Page{last = erod_indices:largest_value(Map, Page#?Page.indice)};
+
+update_fix_barrier(Value, _From, 1, _Size, _Map, Page) ->
+    % The value became the first one
+    Page#?Page{first = Value};
+
+update_fix_barrier(_Value, 1, _To, _Size, Map, Page) ->
+    % The value is not the first one anymore
+    Page#?Page{first = erod_indices:smallest_value(Map, Page#?Page.indice)};
+
+update_fix_barrier(_Value, _From, _To, _Size, _Map, Page) ->
+    % Nothing relevent for the barrier
+    Page.
