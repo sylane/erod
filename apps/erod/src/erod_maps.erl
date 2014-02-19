@@ -7,7 +7,8 @@
          value/2,
          insert/3,
          update/3,
-         delete/2]).
+         delete/2,
+         lookup_from/2]).
 
 
 new() ->
@@ -42,3 +43,39 @@ update(Key, Value, Map) ->
 delete(Key, Map) ->
     gb_trees:delete(Key, Map).
 
+
+lookup_from(Key, {_Size, Tree}) ->
+    case tree_lookup_from(Key, Tree) of
+        none -> none;
+        Values -> lists:reverse(Values)
+    end.
+
+
+
+
+tree_lookup_from(Key, {Key1, Value, Smaller, Bigger}) when Key < Key1 ->
+    tree_collect(Value, tree_lookup_from(Key, Smaller), Bigger);
+
+tree_lookup_from(Key, {Key1, _Value, _Smaller, Bigger}) when Key > Key1 ->
+    tree_lookup_from(Key, Bigger);
+
+tree_lookup_from(_Key, {_Key1, Value, _Smaller, Bigger}) ->
+    tree_collect([Value], Bigger);
+
+tree_lookup_from(_Key, nil) -> none.
+
+
+tree_collect(_Value, none, _Tree) -> none;
+
+tree_collect(Value, Acc, nil) -> [Value |Acc];
+
+tree_collect(Value1, Acc, {_Key, Value2, Smaller, Bigger}) ->
+    tree_collect(Value2, tree_collect(Value1, Acc, Smaller), Bigger).
+
+
+tree_collect(none, _Tree) -> none;
+
+tree_collect(Acc, nil) -> Acc;
+
+tree_collect(Acc, {_Key, Value, Smaller, Bigger}) ->
+    tree_collect(Value, tree_collect(Acc, Smaller), Bigger).
