@@ -12,9 +12,13 @@
          insert/4, insert/5,
          delete/4, delete/5,
          smallest/1,
+         smallest_value/2,
          take_smallest/1,
+         take_smallest_value/2,
          largest/1,
+         largest_value/2,
          take_largest/1,
+         take_largest_value/2,
          balance/1]).
 
 
@@ -97,18 +101,36 @@ smallest({?MODULE, Tree}) ->
     tree_smallest(Tree).
 
 
+smallest_value(Map, {?MODULE, Tree}) ->
+    erod_maps:value(tree_smallest(Tree), Map).
+
+
 take_smallest({?MODULE, Tree}) ->
-    {SmallestValue, NewTree} = tree_take_smallest(Tree),
-    {SmallestValue, {?MODULE, NewTree}}.
+    {SmallestKey, NewTree} = tree_take_smallest(Tree),
+    {SmallestKey, {?MODULE, NewTree}}.
+
+
+take_smallest_value(Map, {?MODULE, Tree}) ->
+    {SmallestKey, NewTree} = tree_take_smallest(Tree),
+    {erod_maps:value(SmallestKey, Map), {?MODULE, NewTree}}.
 
 
 largest({?MODULE, Tree}) ->
     tree_largest(Tree).
 
 
+largest_value(Map, {?MODULE, Tree}) ->
+    erod_maps:value(tree_largest(Tree), Map).
+
+
 take_largest({?MODULE, Tree}) ->
-    {Largestalue, NewTree} = tree_take_largest(Tree),
-    {Largestalue, {?MODULE, NewTree}}.
+    {LargestKey, NewTree} = tree_take_largest(Tree),
+    {LargestKey, {?MODULE, NewTree}}.
+
+
+take_largest_value(Map, {?MODULE, Tree}) ->
+    {LargestKey, NewTree} = tree_take_largest(Tree),
+    {erod_maps:value(LargestKey, Map), {?MODULE, NewTree}}.
 
 
 balance({?MODULE, Tree}) ->
