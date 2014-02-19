@@ -74,8 +74,8 @@ Response
      "cls": "reconnect"}
 
 
-Item Query
-==========
+Content Query
+=============
 
 Request
 -------
@@ -211,7 +211,8 @@ Success Response
 
     {"type": "result",
      "id": "asdf3wf3r",
-     "cls": "path_item"}
+     "cls": "patch_item",
+     "data": {"ver": ["server_213233213", 23479087213]}}
 
 
 Error Response
@@ -252,7 +253,7 @@ Response
     {"type": "result",
      "id": "sdf3223dqs",
      "cls": "add_child",
-     "data": {"type": "room", "id": 2134123}}
+     "data": {"key": {"type": "room", "id": 2134123}}}
 
 
 
@@ -277,9 +278,20 @@ Revoke Subscriptions
 Change Notification
 ===================
 
-    {"type": "notify",
+Request
+-------
+
+    {"type": "request",
+     "id": "wdfqwef32f23f",
      "cls": "changed",
-     "data": {"content": [{"type": "user", "id": 231213123},
-                          {"type": "unit", "id": 4324123}],
-              "children": [{"type": "fav", "id": 4312341233},
-                           {"type": "unit", "id": 3512232}]}}
+     "data": [{"key": {"type": "user", "id": 231213123}, "content": true, "children": false},
+              {"key": {"type": "unit", "id": 4324123}, "content": true, "children": false},
+              {"key": {"type": "fav", "id": 4312341233}, "content": false, "children": true},
+              {"key": {"type": "unit", "id": 3512232}, "content": true, "children": true}]}
+
+Response
+--------
+
+    {"type": "result",
+     "id": "wdfqwef32f23f",
+     "cls": "changed"}
