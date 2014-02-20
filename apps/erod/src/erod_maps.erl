@@ -47,7 +47,7 @@ delete(Key, Map) ->
 lookup_from(Key, {_Size, Tree}) ->
     case tree_lookup_from(Key, Tree) of
         none -> none;
-        Values -> lists:reverse(Values)
+        Values -> {values, lists:reverse(Values)}
     end.
 
 
@@ -72,8 +72,6 @@ tree_collect(Value, Acc, nil) -> [Value |Acc];
 tree_collect(Value1, Acc, {_Key, Value2, Smaller, Bigger}) ->
     tree_collect(Value2, tree_collect(Value1, Acc, Smaller), Bigger).
 
-
-tree_collect(none, _Tree) -> none;
 
 tree_collect(Acc, nil) -> Acc;
 
