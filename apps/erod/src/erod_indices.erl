@@ -11,15 +11,14 @@
          index/4, index/5,
          insert/4, insert/5,
          delete/4, delete/5,
-         smallest/1,
-         smallest_value/2,
-         take_smallest/1,
-         take_smallest_value/2,
-         largest/1,
-         largest_value/2,
-         take_largest/1,
-         take_largest_value/2,
-         balance/1]).
+         smallest_key/3,
+         smallest_value/3,
+         take_smallest_key/3,
+         take_smallest_value/3,
+         largest_key/3,
+         largest_value/3,
+         take_largest_key/3,
+         take_largest_value/3]).
 
 
 -define(pow(A), A * A).
@@ -97,44 +96,40 @@ delete(Key, Value, CompareFun, Map, {?MODULE, Tree}) ->
     {Idx, {?MODULE, NewTree}}.
 
 
-smallest({?MODULE, Tree}) ->
+smallest_key(_ComapreFun, _Map, {?MODULE, Tree}) ->
     tree_smallest(Tree).
 
 
-smallest_value(Map, {?MODULE, Tree}) ->
+smallest_value(_CompareFun, Map, {?MODULE, Tree}) ->
     erod_maps:value(tree_smallest(Tree), Map).
 
 
-take_smallest({?MODULE, Tree}) ->
+take_smallest_key(_ComapreFun, _Map, {?MODULE, Tree}) ->
     {SmallestKey, NewTree} = tree_take_smallest(Tree),
     {SmallestKey, {?MODULE, NewTree}}.
 
 
-take_smallest_value(Map, {?MODULE, Tree}) ->
+take_smallest_value(_ComparFun, Map, {?MODULE, Tree}) ->
     {SmallestKey, NewTree} = tree_take_smallest(Tree),
     {erod_maps:value(SmallestKey, Map), {?MODULE, NewTree}}.
 
 
-largest({?MODULE, Tree}) ->
+largest_key(_CompareFun, _Map, {?MODULE, Tree}) ->
     tree_largest(Tree).
 
 
-largest_value(Map, {?MODULE, Tree}) ->
+largest_value(_CompareFun, Map, {?MODULE, Tree}) ->
     erod_maps:value(tree_largest(Tree), Map).
 
 
-take_largest({?MODULE, Tree}) ->
+take_largest_key(_ComapreFun, _Map, {?MODULE, Tree}) ->
     {LargestKey, NewTree} = tree_take_largest(Tree),
     {LargestKey, {?MODULE, NewTree}}.
 
 
-take_largest_value(Map, {?MODULE, Tree}) ->
+take_largest_value(_CompareFun, Map, {?MODULE, Tree}) ->
     {LargestKey, NewTree} = tree_take_largest(Tree),
     {erod_maps:value(LargestKey, Map), {?MODULE, NewTree}}.
-
-
-balance({?MODULE, Tree}) ->
-    {?MODULE, balance_tree(Tree)}.
 
 
 %%% Internal
