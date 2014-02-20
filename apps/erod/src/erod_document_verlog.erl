@@ -1,5 +1,7 @@
 -module(erod_document_verlog).
 
+%%% TODO: history cleanup
+
 -export([new/0,
          version/1,
          add_patch/2,
@@ -10,12 +12,12 @@
 -define(VerLog, ?MODULE).
 -record(?VerLog, {version,
                   current,
-                  patches}).
+                  history}).
 
 
 
 new() ->
-    #?VerLog{version = 0, current = [], patches = erod_maps:new()}.
+    #?VerLog{version = 0, current = [], history = erod_maps:new()}.
 
 
 version(#?VerLog{version = Version}) -> Version.
@@ -33,14 +35,19 @@ add_patch(Prefix, Patch, #?VerLog{current = Current} = VerLog) when is_list(Patc
     VerLog#?VerLog{current = lists:reverse(Prefixed, Current)}.
 
 
-commit(#?VerLog{version = Version, current = Current, patches = Patches} = VerLog) ->
-    NewPatches = erod_maps:insert(Version, lists:reverse(Current), Patches),
-    VerLog#?VerLog{version = Version + 1, current = [], patches = NewPatches}.
+commit(#?VerLog{current = []} = VerLog) -> {false, VerLog};
+
+commit(#?VerLog{version = Version, current = Current, history = History} = VerLog) ->
+    NewHistory = erod_maps:insert(Version, lists:reverse(Current), History),
+    {true, VerLog#?VerLog{version = Version + 1,
+                          current = [], history = NewHistory}}.
 
 
-get_patch(FromVer, #?VerLog{patches = Patches}) ->
-    case erod_map:lookup_from(FromVer, Patches) of
-        {values, Patches} -> {patch, lists:flatten(Patches)};
+get_patch(undefined, _VerLog) -> none;
+
+get_patch(FromVer, #?VerLog{version = Version, history = History}) ->
+    case erod_maps:lookup_from(FromVer, History) of
+        {values, Patches} -> {patch, Version, lists:flatten(Patches)};
         none -> none
     end.
 
