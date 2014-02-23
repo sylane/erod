@@ -15,6 +15,7 @@
          terminate/2,
          code_change/3]).
 
+-define(PROCESS, ?MODULE).
 -define(St, ?MODULE).
 -define(USER_IDENT_TO_PID, erod_user_identity_to_pid).
 -define(USER_PID_TO_IDENT, erod_user_pid_to_identity).
@@ -25,12 +26,12 @@
 
 
 start_link() ->
-    gen_server:start_link({local, ?USER_MANAGER}, ?MODULE, [], []).
+    gen_server:start_link({local, ?PROCESS}, ?MODULE, [], []).
 
 
 find_user(#?UserIdent{} = UserIdent) ->
     try ets:lookup(?USER_IDENT_TO_PID, UserIdent) of
-        [] -> gen_server:call(?USER_MANAGER, {find_user, UserIdent});
+        [] -> gen_server:call(?PROCESS, {find_user, UserIdent});
         [{_, UserPid}] -> {ok, UserPid}
     catch
         % FIXME: Remove this defensive code.

@@ -15,5 +15,5 @@ start_link() ->
 
 init([]) ->
     lager:debug("Starting root supervisor...", []),
-    {ok, { {one_for_one, 5, 10}, []}}.
+    {ok, {{one_for_one, 5, 10}, [?CHILD(erdom_storage, worker)]}}.
 

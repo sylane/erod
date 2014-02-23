@@ -15,10 +15,12 @@
          smallest_value/3,
          take_smallest_key/3,
          take_smallest_value/3,
+         take_smallest_keys/4,
          largest_key/3,
          largest_value/3,
          take_largest_key/3,
-         take_largest_value/3]).
+         take_largest_value/3,
+         take_largest_keys/4]).
 
 
 -define(pow(A), A * A).
@@ -114,6 +116,11 @@ take_smallest_value(_ComparFun, Map, {?MODULE, Tree}) ->
     {erod_maps:value(SmallestKey, Map), {?MODULE, NewTree}}.
 
 
+take_smallest_keys(_Count, _ComapreFun, _Map, {?MODULE, Tree}) ->
+    %TODO
+    {[], {?MODULE, Tree}}.
+
+
 largest_key(_CompareFun, _Map, {?MODULE, Tree}) ->
     tree_largest(Tree).
 
@@ -130,6 +137,11 @@ take_largest_key(_ComapreFun, _Map, {?MODULE, Tree}) ->
 take_largest_value(_CompareFun, Map, {?MODULE, Tree}) ->
     {LargestKey, NewTree} = tree_take_largest(Tree),
     {erod_maps:value(LargestKey, Map), {?MODULE, NewTree}}.
+
+
+take_largest_keys(_Count, _ComapreFun, _Map, {?MODULE, Tree}) ->
+    %TODO
+    {[], {?MODULE, Tree}}.
 
 
 %%% Internal

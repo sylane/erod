@@ -10,13 +10,15 @@
 
 -export([init/1]).
 
+-define(PROCESS, ?MODULE).
+
 
 start_link() ->
-    supervisor:start_link({local, ?SESSION_SUP}, ?MODULE, []).
+    supervisor:start_link({local, ?PROCESS}, ?MODULE, []).
 
 
 start_child(SessionToken) ->
-    supervisor:start_child(?SESSION_SUP, [SessionToken]).
+    supervisor:start_child(?PROCESS, [SessionToken]).
 
 
 init([]) ->

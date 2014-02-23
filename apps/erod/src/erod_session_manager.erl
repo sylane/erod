@@ -16,6 +16,7 @@
          terminate/2,
          code_change/3]).
 
+-define(PROCESS, ?MODULE).
 -define(St, ?MODULE).
 -define(SESSION_TOKEN_TO_PID, erod_session_token_to_pid).
 -define(SESSION_PID_TO_TOKEN, erod_session_pid_to_token).
@@ -25,11 +26,11 @@
 
 
 start_link() ->
-    gen_server:start_link({local, ?SESSION_MANAGER}, ?MODULE, [], []).
+    gen_server:start_link({local, ?PROCESS}, ?MODULE, [], []).
 
 
 new_session() ->
-    gen_server:call(?SESSION_MANAGER, new_session).
+    gen_server:call(?PROCESS, new_session).
 
 
 find_session(Token) when is_binary(Token) ->

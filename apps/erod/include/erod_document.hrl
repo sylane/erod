@@ -1,0 +1,5 @@
+-ifndef(EROD_DOCUMENT_INCLUDED).
+-define(EROD_DOCUMENT_INCLUDED, true).
+
+
+-endif. % EROD_DOCUMENT_INCLUDED

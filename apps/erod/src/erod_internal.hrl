@@ -1,13 +1,4 @@
 
--define(USER_SUP, user_supervisor).
--define(SESSION_SUP, session_supervisor).
--define(DOCUMENT_SUP, document_supervisor).
-
--define(USER_MANAGER, user_manager).
--define(SESSION_MANAGER, session_manager).
--define(DOCUMENT_MANAGER, document_manager).
-
-
 -define(UserIdent, erod_user_identity).
 -record(erod_user_identity,
         {username :: binary()}).

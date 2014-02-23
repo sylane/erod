@@ -2,13 +2,16 @@
 
 -export([new/0,
          from_orddict/1,
+         from_items/1,
+         size/1,
          keys/1,
          lookup/2,
          value/2,
          insert/3,
          update/3,
          delete/2,
-         lookup_from/2]).
+         lookup_from/2,
+         trim_smallest/2]).
 
 
 new() ->
@@ -17,6 +20,14 @@ new() ->
 
 from_orddict(OrdDict) ->
     gb_trees:from_orddict(OrdDict).
+
+
+from_items(Items) ->
+    gb_trees:from_orddict(orddict:from_list(Items)).
+
+
+size(Map) ->
+    gb_trees:size(Map).
 
 
 keys(Map) ->
@@ -51,6 +62,11 @@ lookup_from(Key, {_Size, Tree}) ->
     end.
 
 
+trim_smallest(MinSize, {Size, Tree}) when Size > MinSize ->
+    %TODO
+    {Size, Tree};
+
+trim_smallest(_MinSize, Map) -> Map.
 
 
 tree_lookup_from(Key, {Key1, Value, Smaller, Bigger}) when Key < Key1 ->

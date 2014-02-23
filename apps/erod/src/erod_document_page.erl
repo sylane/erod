@@ -36,9 +36,8 @@ from_ordered([], _CompareFun, _Map) -> new();
 
 from_ordered(ValOrdDict, CompareFun, Map) ->
     Indice = erod_indices:from_ordered(ValOrdDict),
-    First = hd(ValOrdDict),
-    LastKey = erod_indices:largest_key(CompareFun, Map, Indice),
-    Last = {LastKey, erod_maps:value(LastKey, Map)},
+    {_, First} = hd(ValOrdDict),
+    Last = erod_indices:largest_value(CompareFun, Map, Indice),
     #?Page{indice = Indice,
            first = First, last = Last,
            verlog = erod_document_verlog:new()}.

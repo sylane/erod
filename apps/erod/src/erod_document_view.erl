@@ -1,7 +1,7 @@
 -module(erod_document_view).
 
 -export([new/2,
-         from_ordered/4,
+         from_items/4,
          insert/4,
          delete/3,
          update_inplace/5,
@@ -24,11 +24,13 @@ new(PageSize, CompareFun) ->
            pages = erod_maps:new()}.
 
 
-from_ordered([], PageSize, CompareFun, _Map) ->
+from_items([], PageSize, CompareFun, _Map) ->
     new(PageSize, CompareFun);
 
-from_ordered(ValOrdDict, PageSize, CompareFun, Map) ->
-    Pages = create_pages(ValOrdDict, PageSize, CompareFun, Map),
+from_items(Items, PageSize, CompareFun, Map) ->
+    Fun = fun({_, Va}, {_, Vb}) -> CompareFun(Va, Vb) end,
+    Sorted = lists:sort(Fun, Items),
+    Pages = create_pages(Sorted, PageSize, CompareFun, Map),
     #?View{page_size = PageSize,
            compare_fun = CompareFun,
            changed_pages = erod_sets:new(),
@@ -89,7 +91,7 @@ create_pages([], _Size, _CompareFun, _Map, _Idx, Acc) ->
 create_pages(Values, Size, CompareFun, Map, Idx, Acc) ->
     {PageData, NewValues} = take_first_nth(Size, Values),
     Page = erod_document_page:from_ordered(PageData, CompareFun, Map),
-    create_pages(NewValues, Size, CompareFun, Map, Idx + 1, [{Idx, Page}, Acc]).
+    create_pages(NewValues, Size, CompareFun, Map, Idx + 1, [{Idx, Page} |Acc]).
 
 
 take_first_nth(Size, List) ->

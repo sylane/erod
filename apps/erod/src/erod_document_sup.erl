@@ -10,13 +10,15 @@
 
 -export([init/1]).
 
+-define(PROCESS, ?MODULE).
+
 
 start_link() ->
-    supervisor:start_link({local, ?DOCUMENT_SUP}, ?MODULE, []).
+    supervisor:start_link({local, ?PROCESS}, ?MODULE, []).
 
 
 start_child(DocKey) ->
-    supervisor:start_child(?DOCUMENT_SUP, [DocKey]).
+    supervisor:start_child(?PROCESS, [DocKey]).
 
 
 init([]) ->
