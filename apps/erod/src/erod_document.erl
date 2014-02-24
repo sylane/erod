@@ -1,20 +1,21 @@
 -module(erod_document).
 
 -export([new/3,
+         key/1,
          get_content/2,
          get_children/4,
          patch_content/2,
          add_child/2,
          patch_child/3]).
 
--export([watch/1]).
+-export([handle_message/2]).
 
--export([register_interest/3,
-         unregister_interest/3,
-         notify_change/3,
-         notify_state/3]).
-
--export([handle_info/2]).
+-export(['_get_content'/2,
+         '_get_and_watch'/3,
+         '_register_interest'/3,
+         '_unregister_interest'/3,
+         '_notify_change'/3,
+         '_notify_state'/3]).
 
 -define(Doc, ?MODULE).
 -record(?Doc, {key,
@@ -27,12 +28,12 @@
 
 
 new(DocKey, Module, Options) ->
-    case Module:init(Options, #?Doc{key = DocKey}) of
+    case Module:init(DocKey, Options, #?Doc{key = DocKey}) of
         {ok, Content, Children, ViewSpecs, State, Doc} ->
             ChildrenMap = erod_maps:from_items(Children),
             Views = create_views(ViewSpecs, Children, ChildrenMap),
             ViewMap = erod_maps:from_items(Views),
-            erod_document_manager:register_document(DocKey, self()),
+            erod_registry:register_document(DocKey, self()),
             Doc#?Doc{sub_mod = Module,
                      sub_state = State,
                      content = Content,
@@ -40,6 +41,9 @@ new(DocKey, Module, Options) ->
                      verlog = erod_document_verlog:new(),
                      views = ViewMap}
     end.
+
+
+key(#?Doc{key = Key}) -> Key.
 
 
 get_content(FromVer, #?Doc{content = Content, verlog = VerLog}) ->
@@ -70,29 +74,33 @@ patch_child(_ChildKey, _Patch, Doc) ->
     {ok, Doc}.
 
 
-watch(DocKeyOrKeys) ->
-    erod_document_manager:register_interest(DocKeyOrKeys, self()).
+handle_message(_Msg, _Doc) ->
+    ignored.
 
 
-register_interest(_DocPid, _DocKey, _WatcherPid) ->
+
+'_get_content'(_DocPid, _DocKey) ->
+    {error, not_implemented}.
+
+
+'_get_and_watch'(_DocPid, _DocKey, _WatcherPid) ->
+    {error, not_implemented}.
+
+
+'_register_interest'(_DocPid, _DocKey, _WatcherPid) ->
     ok.
 
 
-unregister_interest(_DocPid, _DocKey, _WatcherPid) ->
+'_unregister_interest'(_DocPid, _DocKey, _WatcherPid) ->
     ok.
 
 
-notify_change(_WatcherPid, _DocKey, _Patch) ->
+'_notify_change'(_WatcherPid, _DocKey, _Patch) ->
     ok.
 
 
-notify_state(_WatcherPid, _DocKey, _StateName) ->
+'_notify_state'(_WatcherPid, _DocKey, _StateName) ->
     ok.
-
-
-handle_info(_Msg, Doc) ->
-    {pass, Doc}.
-
 
 
 create_views(ViewSpecs, Children, Map) ->

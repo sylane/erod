@@ -193,6 +193,7 @@ Updating user status and presence:
      "id": "asdf3wf3r",
      "cls": "patch_content",
      "data": {"key": {"type": "user", "id": 1234234},
+              "ver": [2342, 21342134],
               "patch": [{"op": "replace", "path": "/status", "value": "Not Here"},
                         {"op": "replace", "path": "/presence", "value": "busy"}]}},
 
@@ -203,6 +204,7 @@ Sending a read receipt:
      "id": "asdfa3awfs",
      "cls": "patch_content",
      "data": {"key": {"type": "msg", "id": [342131213, 3421321312]},
+              "ver": null,
               "patch": {"op": "add", "path": "/read", "value": true}}}
 
 
@@ -211,7 +213,7 @@ Success Response
 
     {"type": "result",
      "id": "asdf3wf3r",
-     "cls": "patch_item",
+     "cls": "patch_content",
      "data": {"ver": ["server_213233213", 23479087213]}}
 
 
@@ -220,7 +222,7 @@ Error Response
 
     {"type": "error",
      "id": "asdf3wf3r",
-     "cls": "patch_item",
+     "cls": "patch_content",
      "data": {"code": 10323}}
 
 

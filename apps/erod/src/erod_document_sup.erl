@@ -6,7 +6,7 @@
 
 -export([start_link/0]).
 
--export([start_child/1]).
+-export([start_child/3]).
 
 -export([init/1]).
 
@@ -17,8 +17,8 @@ start_link() ->
     supervisor:start_link({local, ?PROCESS}, ?MODULE, []).
 
 
-start_child(DocKey) ->
-    supervisor:start_child(?PROCESS, [DocKey]).
+start_child(DocKey, Factory, Options) ->
+    supervisor:start_child(?PROCESS, [DocKey, Factory, Options]).
 
 
 init([]) ->

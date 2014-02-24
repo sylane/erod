@@ -90,11 +90,11 @@ load_user(UserIdent) ->
 make_login_result(SessionToken, State) ->
     UserId = State#?St.user_id,
     #?MsgLogRes{session = SessionToken,
-                self = #?MsgKey{type = user, id = UserId},
-                rooms = #?MsgKey{type = rooms, id = UserId},
-                fav = #?MsgKey{type = fav, id = UserId},
-                root = #?MsgKey{type = root, id = 38321},
-                home = #?MsgKey{type = unit, id = 64324},
+                self = {user, UserId},
+                rooms = {rooms, UserId},
+                fav = {fav, UserId},
+                root = {index, 0},
+                home = undefined,
                 config = [{media_server, <<"http://foo.bar.com/statics">>}]}.
 
 

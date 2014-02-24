@@ -8,7 +8,9 @@
 
 -export([get_index/0,
          get_group/1,
-         get_user/1]).
+         get_user/1,
+         does_group_exist/1,
+         does_user_exist/1]).
 
 -export([init/1,
          handle_call/3,
@@ -41,6 +43,15 @@ get_user(UserId) ->
     gen_server:call(?PROCESS, {get_user, UserId}).
 
 
+does_group_exist(GroupId) ->
+    gen_server:call(?PROCESS, {does_group_exist, GroupId}).
+
+
+does_user_exist(UserId) ->
+    gen_server:call(?PROCESS, {does_user_exist, UserId}).
+
+
+
 init([]) ->
     lager:info("Starting erdom dummy storage...", []),
     {ok, AppName} = application:get_application(),
@@ -56,20 +67,27 @@ init([]) ->
 handle_call({get_user, UserId}, _From, State) ->
     #?St{users = Users} = State,
     case gb_trees:lookup(UserId, Users) of
-        {value, User} -> {reply, User, State};
-        none -> {reply, not_found, State}
+        {value, User} -> {reply, {ok, User}, State};
+        none -> {reply, {error, not_found}, State}
     end;
 
 handle_call({get_group, GroupId}, _From, State) ->
     #?St{groups = Groups} = State,
     case gb_trees:lookup(GroupId, Groups) of
-        {value, Group} -> {reply, Group, State};
-        none -> {reply, not_found, State}
+        {value, Group} -> {reply, {ok, Group}, State};
+        none -> {reply, {error, not_found}, State}
     end;
 
 handle_call(get_index, _From, State) ->
     #?St{groups = Groups} = State,
-    {reply, #erdom_index{group_ids = gb_trees:keys(Groups)}, State};
+    Index = #erdom_index{group_ids = gb_trees:keys(Groups)},
+    {reply, {ok, Index}, State};
+
+handle_call({does_group_exist, GroupId}, _From, State) ->
+    {reply, gb_trees:is_defined(GroupId, State#?St.groups), State};
+
+handle_call({does_user_exist, UserId}, _From, State) ->
+    {reply, gb_trees:is_defined(UserId, State#?St.users), State};
 
 handle_call(Request, From, State) ->
     lager:error("Unexpected call from ~p: ~p", [From, Request]),

@@ -16,6 +16,6 @@ start_link() ->
 init([]) ->
     lager:info("Starting documents supervisor...", []),
     {ok, { {rest_for_one, 5, 10},
-           [?CHILD(erod_document_manager, worker),
+           [?CHILD(erod_registry, worker),
             ?CHILD(erod_document_sup, supervisor)]} }.
 

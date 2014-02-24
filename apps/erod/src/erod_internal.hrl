@@ -20,11 +20,6 @@
          user :: pid() | undefined,
          policy :: #erod_session_policy{} | undefined}).
 
--define(MsgKey, erod_message_key).
--record(erod_message_key,
-        {type :: atom(),
-         id :: term() | undefined}).
-
 -define(Msg, erod_message).
 -record(erod_message,
         {type :: request | result | error | notify,
@@ -51,8 +46,22 @@
 -record(erod_message_reconnect_request,
         {session :: binary()}).
 
+-define(MsgGetConReq, erod_message_get_content_request).
+-record(erod_message_get_content_request,
+        {key :: erod_message_key(),
+         ver :: erod_message_version(),
+         subscribe :: boolean()}).
 
--type erod_message_key() :: #erod_message_key{}.
+-define(MsgGetConRes, erod_message_get_content_result).
+-record(erod_message_get_content_result,
+        {key :: erod_message_key(),
+         ver :: erod_message_version(),
+         type :: entity | patch,
+         content :: any()}).
+
+
+-type erod_message_key() :: {atom(), integer() | binary() | tuple()}.
+-type erod_message_version() :: term() | undefined.
 -type erod_user_identity() :: #erod_user_identity{}.
 -type erod_session_policy() :: #erod_session_policy{}.
 -type erod_context() :: #erod_context{}.

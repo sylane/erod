@@ -1,4 +1,4 @@
--module(erod_document_manager).
+-module(erod_registry).
 
 -behaviour(gen_server).
 
@@ -6,8 +6,7 @@
 
 -export([start_link/0]).
 
--export([add_locator/3,
-         register_document/2,
+-export([register_document/2,
          unregister_document/1,
          unregister_document/2,
          find_document/1,
@@ -15,6 +14,8 @@
          register_interest/2,
          unregister_interest/1,
          unregister_interest/2,
+         get_and_watch/1,
+         get_content/1,
          notify_change/2]).
 
 -export([init/1,
@@ -32,16 +33,11 @@
 -define(DOCUMENT_PID_TO_KEY, erod_document_pid_to_key).
 
 
--record(?St, {}).
+-record(?St, {factories}).
 
 
 start_link() ->
     gen_server:start_link({local, ?PROCESS}, ?MODULE, [], []).
-
-
-add_locator(_Type, _Module, _Options) ->
-    %TODO
-    ok.
 
 
 register_document(DocKey, DocPid) ->
@@ -64,7 +60,6 @@ unregister_document(DocKey, DocPid) ->
 
 
 find_document(DocKey) ->
-    %TODO: What to do with document not found ?
     case ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
         [] -> gen_server:call(?PROCESS, {find_document, DocKey});
         [DocPid] -> {ok, DocPid}
@@ -83,7 +78,7 @@ register_interest(DocKey, WatcherPid) ->
     case ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
         [] -> ok;
         [DocPid] ->
-            erod_document:register_interest(DocPid, DocKey, WatcherPid),
+            erod_document:'_register_interest'(DocPid, DocKey, WatcherPid),
             ok
     end.
 
@@ -101,23 +96,49 @@ unregister_interest(DocKey, WatcherPid) ->
     unregister_interest_impl(DocKey, WatcherPid).
 
 
+get_and_watch(DocKey) ->
+    WatcherPid = self(),
+    Item = {DocKey, WatcherPid},
+    ets:insert(?INTEREST_KEY_TO_PID, Item),
+    ets:insert(?INTEREST_PID_TO_KEY, Item),
+    case ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
+        [] -> {error, not_found};
+        [DocPid] ->
+            erod_document:'_get_and_watch'(DocPid, DocKey, WatcherPid)
+    end.
+
+
+get_content(DocKey) ->
+    case ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
+        [] -> {error, not_found};
+        [DocPid] ->
+            erod_document:'_get_content'(DocPid, DocKey)
+    end.
+
+
 notify_change(DocKey, Patch) ->
     Watchers = ets:lookup_element(?INTEREST_KEY_TO_PID, DocKey, 2),
     notify_change_impl(Watchers, DocKey, Patch).
 
 
+
+
 init([]) ->
-    lager:info("Starting document manager...", []),
+    lager:info("Starting document registry...", []),
     process_flag(trap_exit, true),
+    Factories = load_factories(),
     _ = ets:new(?INTEREST_KEY_TO_PID, [named_table, public, bag, {keypos, 1}]),
     _ = ets:new(?INTEREST_PID_TO_KEY, [named_table, public, bag, {keypos, 2}]),
     _ = ets:new(?DOCUMENT_KEY_TO_PID, [named_table, public, set, {keypos, 1}]),
     _ = ets:new(?DOCUMENT_PID_TO_KEY, [named_table, public, bag, {keypos, 2}]),
-    {ok, #?St{}}.
+    {ok, #?St{factories = Factories}}.
 
 
-handle_call({find_document, _DocKey}, _From, State) ->
-    {reply, {error, not_found}, State};
+handle_call({find_document, DocKey}, _From, State) ->
+    case lookup_or_create(DocKey, State) of
+        {ok, DocPid, NewState} -> {reply, {ok, DocPid}, NewState};
+        {error, Reason, NewState} -> {reply, {error, Reason}, NewState}
+    end;
 
 handle_call(Request, From, State) ->
     lager:error("Unexpected call from ~p: ~p", [From, Request]),
@@ -155,6 +176,31 @@ terminate(Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+
+
+load_factories() ->
+    {ok, AppName} = application:get_application(),
+    {ok, FactorySpecs} = application:get_env(AppName, document_factories, []),
+    erod_maps:from_items([{T, {M, O}} || {T, M, O} <- FactorySpecs]).
+
+
+lookup_or_create(DocKey, State) ->
+    case ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
+        [DocPid] -> {ok, DocPid, State};
+        [] -> create_document(DocKey, State)
+    end.
+
+
+create_document({Type, _} = DocKey, #?St{factories = Factories} = State) ->
+    case erod_maps:lookup(Type, Factories) of
+        none -> {error, not_found, State};
+        {value, {Module, Options}} ->
+            case Module:start_document(DocKey, Options) of
+                {ok, DocPid} -> {ok, DocPid, State};
+                {error, Reason} -> {error, Reason, State}
+            end
+    end.
 
 
 unregister_document_impl(DocPid, Reason) when is_pid(DocPid) ->
@@ -199,7 +245,7 @@ unregister_interest_impl(DocKey, WatcherPid) ->
     case ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
         [] -> ok;
         [DocPid] ->
-            erod_document:unregister_interest(DocPid, DocKey, WatcherPid)
+            erod_document:'_unregister_interest'(DocPid, DocKey, WatcherPid)
     end,
     Item = {DocKey, WatcherPid},
     ets:delete_object(?INTEREST_KEY_TO_PID, Item),
@@ -210,12 +256,12 @@ unregister_interest_impl(DocKey, WatcherPid) ->
 notify_change_impl([], _DocKey, _Patch) -> ok;
 
 notify_change_impl([WatcherPid |Watchers], DocKey, Patch) ->
-    erod_document:notify_change(WatcherPid, DocKey, Patch),
+    erod_document:'_notify_change'(WatcherPid, DocKey, Patch),
     notify_change_impl(Watchers, DocKey, Patch).
 
 
 notify_state_impl([], _DocKey, _State) -> ok;
 
 notify_state_impl([WatcherPid |Watchers], DocKey, State) ->
-    erod_document:notify_state(WatcherPid, DocKey, State),
+    erod_document:'_notify_state'(WatcherPid, DocKey, State),
     notify_state_impl(Watchers, DocKey, State).

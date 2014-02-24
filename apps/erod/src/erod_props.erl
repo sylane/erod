@@ -1,12 +1,17 @@
 -module(erod_props).
 
--export([decode/2]).
--export([encode/2]).
--export([get_atom/2]).
--export([get_allowed_atom/3]).
--export([get_binary/2, get_binary/3]).
--export([get_struct/3]).
--export([ensure_undefined/2]).
+-export([decode/2,
+         encode/2,
+         get_atom/2,
+         get_allowed_atom/3,
+         get_binary/2,
+         get_binary/3,
+         get_struct/2,
+         get_struct/3,
+         get_key/2,
+         get_ver/3,
+         get_bool/3,
+         ensure_undefined/2]).
 
 
 decode(jsx, Jsx) -> decode_jsx_value(Jsx).
@@ -25,15 +30,31 @@ get_allowed_atom(Key, Props, Allowed) ->
 
 
 get_binary(Key, Props) ->
-    bin2bin(Key, lookup(Key, Props)).
+    ensure_bin(Key, lookup(Key, Props)).
 
 
 get_binary(Key, Props, Default) ->
-    bin2bin(Key, lookup(Key, Props), Default).
+    ensure_bin(Key, lookup(Key, Props), Default).
+
+
+get_struct(Key, Props) ->
+    ensure_struct(Key, lookup(Key, Props)).
 
 
 get_struct(Key, Props, Default) ->
-    any2struct(Key, lookup(Key, Props), Default).
+    ensure_struct(Key, lookup(Key, Props), Default).
+
+
+get_key(Key, Props) ->
+    struct2key(Key, lookup(Key, Props)).
+
+
+get_ver(Key, Props, Default) ->
+    struct2ver(Key, lookup(Key, Props), Default).
+
+
+get_bool(Key, Props, Default) ->
+    ensure_bool(Key, lookup(Key, Props), Default).
 
 
 ensure_undefined(Key, Props) ->
@@ -99,31 +120,46 @@ bin2atom(Key, false) ->
     error({format_error, {key_required, Key}}).
 
 
-bin2bin(Key, {Key, Value})
+ensure_bin(Key, {Key, Value})
   when is_binary(Value) -> Value;
 
-bin2bin(Key, {Key, _Value}) ->
+ensure_bin(Key, {Key, _Value}) ->
     error({format_error, {bad_value_type, Key}});
 
-bin2bin(Key, false) ->
+ensure_bin(Key, false) ->
     error({format_error, {key_required, Key}}).
 
 
-bin2bin(Key, {Key, Value}, _Default)
+ensure_bin(Key, {Key, Value}, _Default)
   when is_binary(Value) -> Value;
 
-bin2bin(Key, {Key, _Value}, _Default) ->
+ensure_bin(Key, {Key, _Value}, _Default) ->
     error({format_error, {bad_value_type, Key}});
 
-bin2bin(_Key, false, Default) ->
+ensure_bin(_Key, false, Default) ->
     Default.
 
 
-any2struct(Key, {Key, Value}, _Default) ->
+ensure_struct(Key, {Key, Value}) ->
     Value;
 
-any2struct(_Key, false, Default) ->
+ensure_struct(Key, false) ->
+    error({format_error, {key_required, Key}}).
+
+
+ensure_struct(Key, {Key, Value}, _Default) ->
+    Value;
+
+ensure_struct(_Key, false, Default) ->
     Default.
+
+
+ensure_bool(_Key, false, Default) -> Default;
+
+ensure_bool(Key, {Key, Bool}, _Default) when is_boolean(Bool) -> Bool;
+
+ensure_bool(Key, {Key, _Value}, _Default) ->
+    error({format_error, {bad_value_type, Key}}).
 
 
 allowed(Key, Value, Allowed) ->
@@ -131,3 +167,46 @@ allowed(Key, Value, Allowed) ->
         true -> Value;
         false -> error({format_error, {value_not_allowed, Key}})
     end.
+
+
+struct2key(Key, {Key, Props}) ->
+    Type = get_atom(type, Props),
+    Id = get_struct(Key, Props),
+    build_key(Key, Type, Id);
+
+struct2key(Key, false) ->
+    error({format_error, {key_required, Key}}).
+
+
+struct2ver(Key, {Key, null}, Default) ->
+    Default;
+
+struct2ver(Key, {Key, Props}, _Default) ->
+    parse_ident_list(Key, Props);
+
+struct2ver(_Key, false, Default) ->
+    Default.
+
+
+build_key(_Key, Type, Num) when is_integer(Num) -> {Type, Num};
+
+build_key(_Key, Type, Bin) when is_binary(Bin) -> {Type, Bin};
+
+build_key(Key, Type, List) when is_list(List) ->
+    {Type, parse_ident_list(Key, List)};
+
+build_key(Key, _Type, _List) ->
+    error({format_error, {bad_value_type, Key}}).
+
+
+parse_ident_list(Key, []) ->
+    error({format_error, {bad_value_type, Key}});
+
+parse_ident_list(Key, List) when is_list(List) ->
+    case lists:all(fun(V) -> is_integer(V) or is_binary(V) end, List) of
+        false -> error({format_error, {bad_value_type, Key}});
+        true -> list_to_tuple(List)
+    end;
+
+parse_ident_list(Key, _Value) ->
+    error({format_error, {bad_value_type, Key}}).
