@@ -7,6 +7,7 @@
          keys/1,
          values/2,
          to_list/2,
+         map/3,
          size/1,
          index/4, index/5,
          insert/4, insert/5,
@@ -63,6 +64,10 @@ values(Map, {?MODULE, Tree}) ->
 to_list(Map, {?MODULE, Tree}) ->
     [{K, V} || K <- tree_to_list(Tree, []),
                begin V = erod_maps:value(K, Map), true end].
+
+
+map(Fun, Map, {?MODULE, Tree}) ->
+    tree_map(Fun, Map, Tree).
 
 
 size({?MODULE, Tree}) ->
@@ -153,6 +158,16 @@ tree_to_list({Key, _Size, _Weight, Smaller, Larger}, Acc) ->
     tree_to_list(Smaller, [Key | tree_to_list(Larger, Acc)]);
 
 tree_to_list(nil, Acc) -> Acc.
+
+
+tree_map(Fun, Map, Tree) -> tree_map(Fun, Map, Tree, []).
+
+
+tree_map(Fun, Map, {Key, _Size, _Weight, Smaller, Larger}, Acc) ->
+    Result = Fun({Key, erod_maps:value(Key, Map)}),
+    tree_map(Fun, Map, Smaller, [Result |tree_map(Fun, Map, Larger, Acc)]);
+
+tree_map(_Fun, _Map, nil, Acc) -> Acc.
 
 
 tree_size(nil) -> 0;

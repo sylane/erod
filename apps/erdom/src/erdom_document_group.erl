@@ -27,7 +27,7 @@ start_document(_DocKey, []) ->
 
 
 create_document(DocKey, Options) ->
-    erod_document:new(DocKey, ?MODULE, Options).
+    {ok, erod_document:new(DocKey, ?MODULE, Options)}.
 
 
 init({group, GroupId}, [], Doc) ->
@@ -82,10 +82,10 @@ load_group(GroupId) ->
 
 
 get_child_and_watch(UserId) ->
-    case erod_registry:get_and_watch({user, UserId}) of
-        {ok, Content} ->
+    case erod_registry:find_content({user, UserId}, undefined, self()) of
+        {ok, #erod_content{type = entity, data = Content}} ->
             user_content_to_child(Content);
-        {error, not_found} ->
+        {error, document_not_found} ->
             {ok, Data} = erdom_storage:get_user(UserId),
             user_data_to_child(Data)
     end.

@@ -17,7 +17,7 @@
          update_inplace/6,
          update_order/6,
          commit/1,
-         get_content/3]).
+         get_content/4]).
 
 -define(Page, ?MODULE).
 -record(?Page, {indice,
@@ -102,12 +102,17 @@ commit(#?Page{verlog = VerLog} = Page) ->
     {Changed, Page#?Page{verlog = NewVerLog}}.
 
 
-get_content(FromVer, Map, #?Page{indice = Indice, verlog = VerLog}) ->
+get_content(FromVer, Fun, Map, #?Page{indice = Indice, verlog = VerLog}) ->
+    PageSize = erod_indices:size(Indice),
+    TotalSize = erod_maps:size(Map),
     case erod_document_verlog:get_patch(FromVer, VerLog) of
+        unchanged -> unchanged;
         none ->
             Version = erod_document_verlog:version(VerLog),
-            {page, Version, erod_indices:values(Map, Indice)};
-        Patch -> Patch
+            PageData = erod_indices:map(Fun, Map, Indice),
+            {entity, Version, PageSize, TotalSize, PageData};
+        {patch, Version, Patch} ->
+            {patch, Version, PageSize, TotalSize, Patch}
     end.
 
 

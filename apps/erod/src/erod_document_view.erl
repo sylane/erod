@@ -7,7 +7,7 @@
          update_inplace/5,
          update_order/5,
          commit/1,
-         get_content/4]).
+         get_content/5]).
 
 -define(View, ?MODULE).
 -record(?View, {page_size,
@@ -59,11 +59,11 @@ commit(#?View{changed_pages = ChangedPages, pages = Pages} = View) ->
     {Changed, View#?View{changed_pages = erod_sets:new(), pages = NewPages}}.
 
 
-get_content(PageId, FromVer, Map, #?View{pages = Pages}) ->
+get_content(PageId, FromVer, Fun, Map, #?View{pages = Pages}) ->
     case erod_maps:lookup(PageId, Pages) of
-        none -> page_not_found;
+        none -> {error, page_not_found};
         {value, Page} ->
-            erod_document_page:get_content(FromVer, Map, Page)
+            erod_document_page:get_content(FromVer, Fun, Map, Page)
     end.
 
 

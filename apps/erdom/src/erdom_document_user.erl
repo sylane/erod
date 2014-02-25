@@ -26,7 +26,7 @@ start_document(_DocKey, []) ->
 
 
 create_document(DocKey, Options) ->
-    erod_document:new(DocKey, ?MODULE, Options).
+    {ok, erod_document:new(DocKey, ?MODULE, Options)}.
 
 
 init({user, UserId}, [], Doc) ->
@@ -47,5 +47,9 @@ load_user(UserId) ->
     {Content, []}.
 
 user_data_to_content(UD) ->
-    #erdom_user{first_name = FN, last_name = LN, display_name = DN} = UD,
-    #erdom_user_content{first_name = FN, last_name = LN, display_name = DN}.
+    #erdom_user{id = Id, first_name = FN,
+                last_name = LN, display_name = DN} = UD,
+    IdBin = integer_to_binary(Id),
+    #erdom_user_content{first_name = FN, last_name = LN,
+                        display_name = DN, picture = <<"user/", IdBin/bytes>>,
+                        presence = offline, connected = false, status = <<>>}.

@@ -49,6 +49,9 @@ commit(#?VerLog{version = Version, current = Current, history = History} = VerLo
 
 get_patch(undefined, _VerLog) -> none;
 
+get_patch({Identity, Ver}, #?VerLog{identity = Identity, version = Ver}) ->
+    unchanged;
+
 get_patch({Identity, FromVer}, #?VerLog{identity = Identity} = VerLog) ->
     #?VerLog{version = Version, history = History} = VerLog,
     case erod_maps:lookup_from(FromVer, History) of

@@ -12,5 +12,5 @@ encode(jsx, #?MsgLogRes{} = Res) ->
      {<<"fav">>, erod_jsx:key_value(fav, Res#?MsgLogRes.fav)},
      {<<"root">>, erod_jsx:key_value(root, Res#?MsgLogRes.root)},
      {<<"home">>, erod_jsx:key_value(home, Res#?MsgLogRes.home)},
-     {<<"config">>, erod_jsx:key_value(config, Res#?MsgLogRes.config)}].
+     {<<"config">>, erod_jsx:struct_value(config, Res#?MsgLogRes.config)}].
 

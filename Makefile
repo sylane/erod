@@ -19,7 +19,8 @@ test: all
 
 dialyze: all ../dialyzer.plt
 	@dialyzer --plt ../dialyzer.plt $(DIALYZER_WARNINGS) --src \
-	          -I deps deps/cowboy/src deps/cowlib/src deps/ranch/src \
+	          -I deps -I apps \
+	          deps/cowboy/src deps/cowlib/src deps/ranch/src \
 	          deps/jsx/src apps/erod/src apps/erdom/src || exit 0
 
 ../dialyzer.plt:

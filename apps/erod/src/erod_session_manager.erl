@@ -60,7 +60,7 @@ handle_call(new_session, _From, State) ->
         {error, Reason, NewState} -> {reply, {error, Reason}, NewState}
     end;
 
-handle_call(Request, From, State) ->
+handle_call(Request, {From, _Ref}, State) ->
     lager:error("Unexpected call from ~p: ~p", [From, Request]),
     {stop, {unexpected_call, Request, From}, {error, unexpected_call}, State}.
 
@@ -81,7 +81,7 @@ handle_info(Info, State) ->
 
 
 terminate(Reason, _State) ->
-    lager:debug("Terminating session manager: ~p", [Reason]),
+    lager:info("Terminating session manager: ~p", [Reason]),
     ok.
 
 

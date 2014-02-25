@@ -144,7 +144,7 @@ encode_error_message(jsx, Class, Id, ErrorData) ->
 %%      {<<"debug">>, erod_jsx:binary_value(debug, DebugData)}];
 
 encode_error_data(jsx, {Code, Msg, Debug}) ->
-    DebugData = erlang:iolist_to_binary(io_lib:format("~w", [Debug])),
+    DebugData = erlang:iolist_to_binary(io_lib:format("~p", [Debug])),
     [{<<"code">>, erod_jsx:integer_value(code, Code)},
      {<<"msg">>, erod_jsx:binary_value(code, Msg)},
      {<<"debug">>, erod_jsx:binary_value(debug, DebugData)}].

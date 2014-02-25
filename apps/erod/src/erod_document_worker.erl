@@ -30,7 +30,7 @@ init([DocKey, Factory, Options]) ->
     end.
 
 
-handle_call(Request, From, State) ->
+handle_call(Request, {From, _Ref}, State) ->
     lager:error("Unexpected call from ~p: ~p", [From, Request]),
     {stop, {unexpected_call, Request, From}, {error, unexpected_call}, State}.
 
@@ -50,8 +50,8 @@ handle_info(Info, #?St{doc = Doc} = State) ->
 
 
 terminate(Reason, #?St{doc = Doc}) ->
-    lager:debug("Terminating document ~p worker: ~p",
-                [erod_document:key(Doc), Reason]),
+    lager:info("Terminating document ~p worker: ~p",
+               [erod_document:key(Doc), Reason]),
     ok.
 
 

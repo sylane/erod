@@ -3,6 +3,7 @@
 -export([decode/2,
          encode/2,
          get_atom/2,
+         get_integer/2,
          get_allowed_atom/3,
          get_binary/2,
          get_binary/3,
@@ -23,6 +24,10 @@ encode(jsx, Props) -> encode_jsx_value(Props).
 
 get_atom(Key, Props) ->
     bin2atom(Key, lookup(Key, Props)).
+
+
+get_integer(Key, Props) ->
+    ensure_integer(Key, lookup(Key, Props)).
 
 
 get_allowed_atom(Key, Props, Allowed) ->
@@ -120,6 +125,15 @@ bin2atom(Key, false) ->
     error({format_error, {key_required, Key}}).
 
 
+ensure_integer(Key, {Key, Value}) when is_integer(Value) -> Value;
+
+ensure_integer(Key, {Key, _Value}) ->
+    error({format_error, {bad_value_type, Key}});
+
+ensure_integer(Key, false) ->
+    error({format_error, {key_required, Key}}).
+
+
 ensure_bin(Key, {Key, Value})
   when is_binary(Value) -> Value;
 
@@ -171,7 +185,7 @@ allowed(Key, Value, Allowed) ->
 
 struct2key(Key, {Key, Props}) ->
     Type = get_atom(type, Props),
-    Id = get_struct(Key, Props),
+    Id = get_struct(id, Props),
     build_key(Key, Type, Id);
 
 struct2key(Key, false) ->

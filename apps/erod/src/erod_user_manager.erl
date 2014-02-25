@@ -6,7 +6,7 @@
 
 -export([start_link/0]).
 
--export([find_user/1]).
+-export([get_user/1]).
 
 -export([init/1,
          handle_call/3,
@@ -29,9 +29,9 @@ start_link() ->
     gen_server:start_link({local, ?PROCESS}, ?MODULE, [], []).
 
 
-find_user(#?UserIdent{} = UserIdent) ->
+get_user(#?UserIdent{} = UserIdent) ->
     try ets:lookup(?USER_IDENT_TO_PID, UserIdent) of
-        [] -> gen_server:call(?PROCESS, {find_user, UserIdent});
+        [] -> gen_server:call(?PROCESS, {get_user, UserIdent});
         [{_, UserPid}] -> {ok, UserPid}
     catch
         % FIXME: Remove this defensive code.
@@ -50,13 +50,13 @@ init([]) ->
     {ok, #?St{ident_to_pid = I2P, pid_to_ident = P2I}}.
 
 
-handle_call({find_user, UserIdent}, _From, State) ->
+handle_call({get_user, UserIdent}, _From, State) ->
     case lookup_or_start_user(UserIdent, State) of
         {ok, UserPid, NewState} -> {reply, {ok, UserPid}, NewState};
         {error, Reason, NewState} -> {reply, {error, Reason}, NewState}
     end;
 
-handle_call(Request, From, State) ->
+handle_call(Request, {From, _Ref}, State) ->
     lager:error("Unexpected call from ~p: ~p", [From, Request]),
     {stop, {unexpected_call, Request, From}, {error, unexpected_call}, State}.
 
@@ -77,7 +77,7 @@ handle_info(Info, State) ->
 
 
 terminate(Reason, _State) ->
-    lager:debug("Terminating user manager: ~p", [Reason]),
+    lager:info("Terminating user manager: ~p", [Reason]),
     ok.
 
 

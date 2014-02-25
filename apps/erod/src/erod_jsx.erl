@@ -4,6 +4,7 @@
          atom_value/2,
          allowed_atom_value/3,
          integer_value/2,
+         bool_value/2,
          struct_value/2,
          key_value/2,
          ver_value/2,
@@ -39,6 +40,12 @@ integer_value(Key, _Value) ->
     error({format_error, {bad_value_type, Key}}).
 
 
+bool_value(_Key, Value) when is_boolean(Value) -> Value;
+
+bool_value(Key, _Value) ->
+    error({format_error, {bad_value_type, Key}}).
+
+
 struct_value(_Key, undefined) -> null;
 
 struct_value(_Key, Bin) when is_binary(Bin) -> Bin;
@@ -47,8 +54,13 @@ struct_value(_Key, Bool) when is_boolean(Bool) -> Bool;
 
 struct_value(_Key, Num) when is_integer(Num) -> Num;
 
-struct_value(_Key, Rec) when is_tuple(Rec) ->
-    Rec:encode(jsx);
+struct_value(Key, Rec) when is_tuple(Rec) ->
+    try Rec:encode(jsx)
+    catch error:undef ->
+              lager:error("Encoding function ~p:encode(jsx, Data) not found "
+                          "for data ~p", [element(1, Rec), Rec]),
+              error({format_error, {unsuported_value, Key}})
+    end;
 
 struct_value(_Key, Props) when is_list(Props) ->
     % We assume that if it is not a record it is a proplist

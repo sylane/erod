@@ -25,7 +25,7 @@ start_document(_DocKey, []) ->
 
 
 create_document(DocKey, Options) ->
-    erod_document:new(DocKey, ?MODULE, Options).
+    {ok, erod_document:new(DocKey, ?MODULE, Options)}.
 
 
 init({index, 0}, [], Doc) ->
@@ -56,10 +56,10 @@ load_index() ->
 
 
 get_child_and_watch(GroupId) ->
-    case erod_registry:get_and_watch({group, GroupId}) of
-        {ok, Content} ->
+    case erod_registry:find_content({group, GroupId}, undefined, self()) of
+        {ok, #erod_content{type = entity, data = Content}} ->
             group_content_to_child(Content);
-        {error, not_found} ->
+        {error, document_not_found} ->
             {ok, Data} = erdom_storage:get_group(GroupId),
             group_data_to_child(Data)
     end.

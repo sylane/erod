@@ -136,7 +136,7 @@ create_groups(Index, GroupMap, Count) ->
         {value, _} -> create_groups(Index, GroupMap, Count);
         none ->
             Number = gb_trees:size(GroupMap) + 1,
-            Name = iolist_to_binary(io_lib:format("Group ~p", [Number])),
+            Name = iolist_to_binary(io_lib:format("Group ~3w", [Number])),
             Size = random:uniform(400) + 200,
             UserIds = pick_user_ids(Size, Index),
             Group = #erdom_group{id = GroupId, name = Name, user_ids = UserIds},

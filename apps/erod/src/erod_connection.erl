@@ -1,6 +1,3 @@
-%%% FIXME: A connection without session will never die.
-%%% FIXME: A connection spawns a session every login message.
-
 -module(erod_connection).
 
 -behaviour(cowboy_websocket_handler).
@@ -26,6 +23,10 @@
 -record(?St, {ping_timer :: reference() | undefined,
               ctx :: erod_context() | undefined}).
 
+%%% FIXME: A connection without session will never die.
+%%% FIXME: A connection spawns a session every login message.
+%%% TODO: Generic Abuse detection
+
 
 bind_context(#?Ctx{conn = Connection} = Ctx) ->
     call(Connection, {bind_context, Ctx}).
@@ -44,12 +45,15 @@ init({tcp, http}, _Req, _Opts) ->
 
 
 websocket_init(_Transport, Req, []) ->
-    lager:debug("Starting websocket handler...", []),
+    lager:info("Starting websocket handler...", []),
     {ok, cowboy_req:compact(Req),
      schedule_keepalive(#?St{}), ?INACTIVITY_TIMEOUT}.
 
 
 websocket_handle({pong, <<>>}, Req, State) ->
+    {ok, Req, State};
+
+websocket_handle({text, <<"\n">>}, Req, State) ->
     {ok, Req, State};
 
 websocket_handle({text, Json}, Req, State) ->
@@ -85,7 +89,7 @@ websocket_info(Info, Req, State) ->
 
 
 websocket_terminate(_Reason, _Req, State) ->
-    lager:debug("Terminating websocket handler...", []),
+    lager:info("Terminating websocket handler...", []),
     _ = cancel_keepalive(State),
     ok.
 
@@ -196,6 +200,75 @@ route_reconnect(Req, Ctx, State) ->
     end.
 
 
-route_with_context(Msg, Ctx, State) ->
-    erod_session:route(Ctx#?Ctx.sess, Msg, Ctx),
+route_with_context(#?Msg{type = request, cls = get_content} = Req, Ctx, State) ->
+    try ?MsgGetConReq:decode(props, Req#?Msg.data) of
+        Data -> get_content(Req#?Msg{data = Data}, Ctx, State)
+    catch
+        error:Error ->
+            {reply, erod_message:encode_error_reply(json, Req, Error), State}
+    end;
+
+route_with_context(#?Msg{type = request, cls = get_children} = Req, Ctx, State) ->
+    try ?MsgGetChiReq:decode(props, Req#?Msg.data) of
+        Data -> get_children(Req#?Msg{data = Data}, Ctx, State)
+    catch
+        error:Error ->
+            {reply, erod_message:encode_error_reply(json, Req, Error), State}
+    end;
+
+route_with_context(#?Msg{type = request, cls = logout} = Req, Ctx, State) ->
+    erod_session:route(Ctx#?Ctx.sess, Req, Ctx),
+    {ok, State};
+
+route_with_context(#?Msg{type = request} = Req, _Ctx, State) ->
+    lager:warning("Unexpected packet received: ~p", [Req]),
+    {reply, erod_message:encode_error_reply(json, Req, unexpected), State};
+
+route_with_context(Msg, _Ctx, State) ->
+    lager:warning("Unexpected packet received: ~p", [Msg]),
     {ok, State}.
+
+
+get_content(Req, Ctx, State) ->
+    #?MsgGetConReq{key = Key, ver = Ver, subscribe = Subs} =  Req#?Msg.data,
+    Watcher = if Subs -> Ctx#?Ctx.sess;
+                 true -> undefined
+              end,
+    case erod_registry:get_content(Key, Ver, Watcher) of
+        {error, Reason} ->
+            {reply, erod_message:encode_error_reply(json, Req, Reason), State};
+        unchanged ->
+            #?Msg{id = Id, cls = Cls} = Req,
+            Result = #?Msg{type = result, id = Id, cls = Cls},
+            Packet = erod_message:encode(json, Result),
+            {reply, Packet, State};
+        #erod_content{} = Content ->
+            #?Msg{type = request, id = Id, cls = Cls} = Req,
+            Data = #?MsgGetConRes{content = Content},
+            Result = #?Msg{type = result, id = Id, cls = Cls, data = Data},
+            Packet = erod_message:encode(json, Result),
+            {reply, Packet, State}
+    end.
+
+
+get_children(Req, Ctx, State) ->
+    #?MsgGetChiReq{key = Key, ver = Ver, view = ViewId,
+                   page = PageId, subscribe = Subs} =  Req#?Msg.data,
+    Watcher = if Subs -> Ctx#?Ctx.sess;
+                 true -> undefined
+              end,
+    case erod_registry:get_children(Key, ViewId, PageId, Ver, Watcher) of
+        {error, Reason} ->
+            {reply, erod_message:encode_error_reply(json, Req, Reason), State};
+        unchanged ->
+            #?Msg{id = Id, cls = Cls} = Req,
+            Result = #?Msg{type = result, id = Id, cls = Cls},
+            Packet = erod_message:encode(json, Result),
+            {reply, Packet, State};
+        #erod_page{} = Page ->
+            #?Msg{type = request, id = Id, cls = Cls} = Req,
+            Data = #?MsgGetChiRes{page = Page},
+            Result = #?Msg{type = result, id = Id, cls = Cls, data = Data},
+            Packet = erod_message:encode(json, Result),
+            {reply, Packet, State}
+    end.

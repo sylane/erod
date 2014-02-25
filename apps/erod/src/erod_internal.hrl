@@ -1,4 +1,7 @@
 
+-include("erod_document.hrl").
+
+
 -define(UserIdent, erod_user_identity).
 -record(erod_user_identity,
         {username :: binary()}).
@@ -35,11 +38,11 @@
 -define(MsgLogRes, erod_message_login_result).
 -record(erod_message_login_result,
         {session :: binary(),
-         self :: erod_message_key(),
-         rooms :: erod_message_key(),
-         fav :: erod_message_key(),
-         root :: erod_message_key(),
-         home :: erod_message_key(),
+         self :: erod_key(),
+         rooms :: erod_key(),
+         fav :: erod_key(),
+         root :: erod_key(),
+         home :: erod_key(),
          config :: proplists:proplist()}).
 
 -define(MsgRecReq, erod_message_reconnect_request).
@@ -48,20 +51,27 @@
 
 -define(MsgGetConReq, erod_message_get_content_request).
 -record(erod_message_get_content_request,
-        {key :: erod_message_key(),
-         ver :: erod_message_version(),
+        {key :: erod_key(),
+         ver :: erod_version(),
          subscribe :: boolean()}).
 
 -define(MsgGetConRes, erod_message_get_content_result).
 -record(erod_message_get_content_result,
-        {key :: erod_message_key(),
-         ver :: erod_message_version(),
-         type :: entity | patch,
-         content :: any()}).
+        {content :: erod_content()}).
+
+-define(MsgGetChiReq, erod_message_get_children_request).
+-record(erod_message_get_children_request,
+        {key :: erod_key(),
+         ver :: erod_version(),
+         view :: erod_view_id(),
+         page :: erod_page_id(),
+         subscribe :: boolean()}).
+
+-define(MsgGetChiRes, erod_message_get_children_result).
+-record(erod_message_get_children_result,
+        {page :: erod_page()}).
 
 
--type erod_message_key() :: {atom(), integer() | binary() | tuple()}.
--type erod_message_version() :: term() | undefined.
 -type erod_user_identity() :: #erod_user_identity{}.
 -type erod_session_policy() :: #erod_session_policy{}.
 -type erod_context() :: #erod_context{}.

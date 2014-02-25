@@ -1,4 +1,4 @@
-
+-include_lib("erod/include/erod_document.hrl").
 
 -record(erdom_index, {group_ids}).
 
@@ -16,5 +16,6 @@
 
 -record(erdom_group_child, {name, presence, connected}).
 
--record(erdom_user_content, {first_name, last_name, display_name,
-                             status, presence, connected}).
+-record(erdom_user_content, {first_name, last_name,
+                             display_name, picture,
+                             presence, connected, status}).

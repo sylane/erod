@@ -133,7 +133,7 @@ Request
      "data": {"key": {"type": "fav", "id": 423421341},
               "ver": ["server_213233213", 123413243]
               "view": "asc_pres_first",
-              "index": 1,
+              "page": 1,
               "subscribe": true}}
 
 
@@ -154,9 +154,9 @@ Full Response
      "data": {"key": {"type": "fav", "id": 423421341},
               "ver": ["server_213233213", 12341332423]
               "view": "asc_pres_first",
-              "index": 1,
-              "total_size": 800,
-              "page_size": 5,
+              "page": 1,
+              "size": 5,
+              "total": 800,
               "page": [{"key": {"type": "user", "id": 32131}, "display_name": "Abadi Bouzouf", "picture": "users/32131", "presence": "online", "connected": true},
                        {"key": {"type": "user", "id": 87324}, "display_name": "Betani Patif", "picture": "users/87324", "presence": "online", "connected": true},
                        {"key": {"type": "user", "id": 98234}, "display_name": "Coll Derp", "picture": null, "presence": "online", "connected": true},
@@ -174,8 +174,8 @@ Patch Response
               "ver": ["server_213233213", 12341332423]
               "view": "asc_pres_first",
               "page": 1,
-              "list_size": 800,
-              "page_size": 5,
+              "size": 5,
+              "total": 800,
               "patch": [{"op": "add", "path": "/2", "value": {"key": {"type": "user", "id": 98234}, "display_name": "Coll Derp", "picture": null, "presence": "online", "connected": true}},
                         {"op": "remove", "path": "/5"},
                         {"op": "replace", "path": "/3/connected", "value": false}]}}

@@ -6,6 +6,7 @@ Item
 
     {"first_name": "Foo",
      "last_name": "Bar",
+     "display_name": "Foo Bar",
      "picture": "user/3243214"
      "presence": "online",
      "connected": true,

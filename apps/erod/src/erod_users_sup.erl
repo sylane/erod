@@ -14,7 +14,7 @@ start_link() ->
 
 
 init([]) ->
-    lager:debug("Starting users supervisor...", []),
+    lager:info("Starting users supervisor...", []),
     {ok, { {rest_for_one, 5, 10},
            [?CHILD(erod_user_manager, worker),
             ?CHILD(erod_user_sup, supervisor)]} }.

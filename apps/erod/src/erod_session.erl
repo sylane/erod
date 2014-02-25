@@ -100,7 +100,7 @@ route(Session, #?Msg{} = Msg, #?Ctx{} = Ctx) ->
 %%% --------------------------------------------------------------------------
 
 init([SessionToken]) ->
-    lager:debug("Starting session ~p...", [SessionToken]),
+    lager:info("Starting session ~p...", [SessionToken]),
     process_flag(trap_exit, true),
     bootstrap(wait_login, #?St{token = SessionToken}).
 
@@ -109,7 +109,7 @@ handle_event(Event, StateName, State) ->
     stop(StateName, {unexpected_event, StateName, Event}, State).
 
 
-handle_sync_event(Event, From, StateName, State) ->
+handle_sync_event(Event, {From, _Ref}, StateName, State) ->
     lager:error("Unexpected event from ~p in state ~p: ~p",
                 [From, StateName, Event]),
     stop_reply({error, unexpected_event}, StateName,
@@ -125,7 +125,7 @@ handle_info(Info, StateName, State) ->
 
 
 terminate(Reason, StateName, _State) ->
-    lager:debug("Terminating session in state ~p: ~p", [StateName, Reason]),
+    lager:info("Terminating session in state ~p: ~p", [StateName, Reason]),
     ok.
 
 
@@ -365,7 +365,7 @@ route_login(#?Msg{type = request, cls = login} = Req, Ctx, State) ->
         {error, _Reason} -> {ok, State};
         {ok, #?Msg{data = LogReq} = NewReq} ->
             UserIdent = ?MsgLogReq:as_identity(LogReq),
-            case erod_user_manager:find_user(UserIdent) of
+            case erod_user_manager:get_user(UserIdent) of
                 {ok, User} ->
                     erod_user:route(User, NewReq, Ctx#?Ctx{sess = self()}),
                     {ok, State};

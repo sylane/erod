@@ -31,7 +31,7 @@ route(User, #?Msg{} = Msg, #?Ctx{} = Ctx) ->
 
 
 init([UserIdent]) ->
-    lager:debug("Starting user ~p...", [UserIdent]),
+    lager:info("Starting user ~p...", [UserIdent]),
     process_flag(trap_exit, true),
     case load_user(UserIdent) of
         {ok, State} -> {ok, State};
@@ -39,7 +39,7 @@ init([UserIdent]) ->
     end.
 
 
-handle_call(Request, From, State) ->
+handle_call(Request, {From, _Ref}, State) ->
     lager:error("Unexpected call from ~p: ~p", [From, Request]),
     {stop, {unexpected_call, Request, From}, {error, unexpected_call}, State}.
 
@@ -68,7 +68,7 @@ handle_info(Info, State) ->
 
 
 terminate(Reason, _State) ->
-    lager:debug("Terminating user: ~p", [Reason]),
+    lager:info("Terminating user: ~p", [Reason]),
     ok.
 
 
