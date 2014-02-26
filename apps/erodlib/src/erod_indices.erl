@@ -53,17 +53,15 @@ for_map(CompareFun, Map) ->
 
 
 keys({?MODULE, Tree}) ->
-    tree_to_list(Tree, []).
+    tree_to_keys(Tree).
 
 
 values(Map, {?MODULE, Tree}) ->
-    [V || K <- tree_to_list(Tree, []),
-          begin V = erod_maps:value(K, Map), true end].
+    tree_to_values(Map, Tree).
 
 
 to_list(Map, {?MODULE, Tree}) ->
-    [{K, V} || K <- tree_to_list(Tree, []),
-               begin V = erod_maps:value(K, Map), true end].
+    tree_to_list(Map, Tree).
 
 
 map(Fun, Map, {?MODULE, Tree}) ->
@@ -151,13 +149,33 @@ take_largest_keys(_Count, _ComapreFun, _Map, {?MODULE, Tree}) ->
 
 %%% Internal
 
-tree_to_list(Tree) -> tree_to_list(Tree, []).
+tree_to_keys(Tree) -> tree_to_keys(Tree, []).
 
 
-tree_to_list({Key, _Size, _Weight, Smaller, Larger}, Acc) ->
-    tree_to_list(Smaller, [Key | tree_to_list(Larger, Acc)]);
+tree_to_keys({Key, _Size, _Weight, Smaller, Larger}, Acc) ->
+    tree_to_keys(Smaller, [Key |tree_to_keys(Larger, Acc)]);
 
-tree_to_list(nil, Acc) -> Acc.
+tree_to_keys(nil, Acc) -> Acc.
+
+
+tree_to_values(Map, Tree) -> tree_to_values(Map, Tree, []).
+
+
+tree_to_values(Map, {Key, _Size, _Weight, Smaller, Larger}, Acc) ->
+    Value = erod_maps:value(Key, Map),
+    tree_to_values(Map, Smaller, [Value |tree_to_values(Map, Larger, Acc)]);
+
+tree_to_values(_Map, nil, Acc) -> Acc.
+
+
+tree_to_list(Map, Tree) -> tree_to_list(Map, Tree, []).
+
+
+tree_to_list(Map, {Key, _Size, _Weight, Smaller, Larger}, Acc) ->
+    Item = {Key, erod_maps:value(Key, Map)},
+    tree_to_list(Map, Smaller, [Item |tree_to_list(Map, Larger, Acc)]);
+
+tree_to_list(_Map, nil, Acc) -> Acc.
 
 
 tree_map(Fun, Map, Tree) -> tree_map(Fun, Map, Tree, []).
@@ -282,7 +300,7 @@ tree_take_largest({Key, _Size, _Weight, Smaller, Larger}) ->
 
 
 balance_tree({_Key, Size, _Weight, _Smaller, _Larger} = Tree) ->
-    balance_list(tree_to_list(Tree), Size).
+    balance_list(tree_to_keys(Tree), Size).
 
 
 balance_list(Keys, Size) ->
