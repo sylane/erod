@@ -1,0 +1,12 @@
+{application, erodlib,
+ [{description, "Erlang Remote Operative Document Lirary"},
+  {vsn, "0.1"},
+  {modules,
+   [erodlib]},
+  {registered, []},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env, []}
+ ]}.

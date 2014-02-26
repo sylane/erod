@@ -1,0 +1,13 @@
+{application, erodws,
+ [{description, "Erlang Remote Operative Document Web Socket"},
+  {vsn, "0.1"},
+  {modules,
+   [erodws]},
+  {registered, []},
+  {applications,
+   [kernel,
+    stdlib,
+    erod
+   ]},
+  {env, []}
+ ]}.

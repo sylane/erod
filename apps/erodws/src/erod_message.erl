@@ -1,6 +1,6 @@
 -module(erod_message).
 
--include("erod_internal.hrl").
+-include("erodws_internal.hrl").
 
 -export([decode/2]).
 -export([encode/2]).

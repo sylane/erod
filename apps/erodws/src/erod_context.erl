@@ -1,6 +1,6 @@
 -module(erod_context).
 
--include("erod_internal.hrl").
+-include("erodws_internal.hrl").
 
 -export([send/2]).
 -export([safe_send/2]).

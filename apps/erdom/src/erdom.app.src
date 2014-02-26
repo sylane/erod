@@ -1,17 +1,16 @@
 {application, erdom,
- [
-  {description, "Erlang Remote Document Oriented Messaging"},
+ [{description, "Erlang Remote Document Oriented Messaging"},
   {vsn, "0.1"},
   {registered, []},
-  {applications, [
-                  kernel,
-                  stdlib,
-                  sasl,
-                  lager,
-                  cowboy,
-                  jsx,
-                  erod
-                 ]},
-  {mod, { erdom_app, []}},
+  {applications,
+   [kernel,
+    stdlib,
+    sasl,
+    lager,
+    cowboy,
+    jsx,
+    erod
+   ]},
+  {mod, {erdom_app, []}},
   {env, []}
  ]}.

@@ -26,7 +26,7 @@ start_link(UserIdent) ->
     gen_server:start_link(?MODULE, [UserIdent], []).
 
 
-route(User, #?Msg{} = Msg, #?Ctx{} = Ctx) ->
+route(User, Msg, Ctx) ->
     gen_server:cast(User, {route, Msg, Ctx}).
 
 

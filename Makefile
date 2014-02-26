@@ -20,8 +20,10 @@ test: all
 dialyze: all ../dialyzer.plt
 	@dialyzer --plt ../dialyzer.plt $(DIALYZER_WARNINGS) --src \
 	          -I deps -I apps \
-	          deps/cowboy/src deps/cowlib/src deps/ranch/src \
-	          deps/jsx/src apps/erod/src apps/erdom/src || exit 0
+	          deps/cowboy/src deps/cowlib/src \
+	          deps/ranch/src deps/jsx/src \
+	          apps/erodlib/src apps/erod/src \
+	          apps/erodws/src apps/erdom/src || exit 0
 
 ../dialyzer.plt:
 	dialyzer --build_plt --output_plt ../dialyzer.plt \

@@ -1,6 +1,6 @@
 -module(erod_message_get_children_result).
 
--include("erod_internal.hrl").
+-include("erodws_internal.hrl").
 
 -export([encode/2]).
 

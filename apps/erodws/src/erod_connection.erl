@@ -2,7 +2,7 @@
 
 -behaviour(cowboy_websocket_handler).
 
--include("erod_internal.hrl").
+-include("erodws_internal.hrl").
 
 -export([bind_context/1]).
 -export([disband_context/1]).
