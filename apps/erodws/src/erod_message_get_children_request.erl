@@ -6,10 +6,10 @@
 
 
 decode(props, Props) ->
-    Key = erod_props:get_key(key, Props),
-    Ver = erod_props:get_ver(ver, Props, undefined),
-    ViewId = erod_props:get_atom(view, Props),
-    PageId = erod_props:get_integer(page, Props),
-    Subscribe = erod_props:get_bool(subscribe, Props, false),
+    Key = erodlib_props:get_key(key, Props),
+    Ver = erodlib_props:get_ver(ver, Props, undefined),
+    ViewId = erodlib_props:get_atom(view, Props),
+    PageId = erodlib_props:get_integer(page, Props),
+    Subscribe = erodlib_props:get_bool(subscribe, Props, false),
     #?MsgGetChiReq{key = Key, ver = Ver, view = ViewId,
                    page = PageId, subscribe = Subscribe}.

@@ -1,4 +1,4 @@
--module(erod_dbg).
+-module(erodlib_dbg).
 
 -export([tm/1, cm/1]).
 

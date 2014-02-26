@@ -6,5 +6,5 @@
 
 
 decode(props, Props) ->
-    Session = erod_props:get_binary(session, Props),
+    Session = erodlib_props:get_binary(session, Props),
     #?MsgRecReq{session = Session}.

@@ -1,4 +1,4 @@
--module(erod_jsx).
+-module(erodlib_jsx).
 
 -export([binary_value/2,
          atom_value/2,
@@ -64,7 +64,7 @@ struct_value(Key, Rec) when is_tuple(Rec) ->
 
 struct_value(_Key, Props) when is_list(Props) ->
     % We assume that if it is not a record it is a proplist
-    erod_props:encode(jsx, Props);
+    erodlib_props:encode(jsx, Props);
 
 struct_value(Key, _Other) ->
     error({format_error, {bad_value_type, Key}}).

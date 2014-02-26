@@ -6,4 +6,4 @@
 
 
 encode(jsx, #erdom_group_content{name = N}) ->
-    [{<<"name">>, erod_jsx:binary_value(name, N)}].
+    [{<<"name">>, erodlib_jsx:binary_value(name, N)}].

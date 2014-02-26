@@ -6,7 +6,7 @@
 
 
 decode(props, Props) ->
-    Key = erod_props:get_key(key, Props),
-    Ver = erod_props:get_ver(ver, Props, undefined),
-    Subscribe = erod_props:get_bool(subscribe, Props, false),
+    Key = erodlib_props:get_key(key, Props),
+    Ver = erodlib_props:get_ver(ver, Props, undefined),
+    Subscribe = erodlib_props:get_bool(subscribe, Props, false),
     #?MsgGetConReq{key = Key, ver = Ver, subscribe = Subscribe}.

@@ -1,4 +1,4 @@
--module(erod_props).
+-module(erodlib_props).
 
 -export([decode/2,
          encode/2,
@@ -83,7 +83,7 @@ decode_jsx_value(V) -> V.
 
 
 decode_jsx_key(K) ->
-    erod_common:maybe_atom(K).
+    erodlib:maybe_atom(K).
 
 
 encode_jsx_value([{}]) -> [{}];
@@ -100,7 +100,7 @@ encode_jsx_value(V) -> V.
 encode_jsx_key(K) when is_binary(K)  -> K;
 
 encode_jsx_key(K) when is_atom(K)  ->
-    erod_common:atom2bin(K).
+    erodlib:atom2bin(K).
 
 
 lookup(Key, Props) when is_list(Props) ->
@@ -111,7 +111,7 @@ lookup(_Key, _Props) ->
 
 
 bin2atom(Key, {Key, Value}) when is_binary(Value) ->
-    try erod_common:bin2atom(Value) of
+    try erodlib:bin2atom(Value) of
         Atom -> Atom
     catch
         error:badarg ->

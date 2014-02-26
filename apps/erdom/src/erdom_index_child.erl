@@ -5,4 +5,4 @@
 -export([encode/2]).
 
 encode(jsx, #erdom_index_child{name = Name}) ->
-    [{<<"name">>, erod_jsx:binary_value(name, Name)}].
+    [{<<"name">>, erodlib_jsx:binary_value(name, Name)}].

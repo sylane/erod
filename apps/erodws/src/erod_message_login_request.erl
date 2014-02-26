@@ -9,8 +9,8 @@
 
 
 decode(props, Props) ->
-    Username = erod_props:get_binary(username, Props),
-    Password = erod_props:get_binary(password, Props),
+    Username = erodlib_props:get_binary(username, Props),
+    Password = erodlib_props:get_binary(password, Props),
     #?MsgLogReq{username = Username, password = Password}.
 
 
