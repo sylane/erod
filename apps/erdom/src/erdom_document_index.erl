@@ -1,12 +1,15 @@
 -module(erdom_document_index).
 
+-behaviour(erod_factory).
+-behaviour(erod_document).
+
 -include("erdom_internal.hrl").
 
 
 -export([start_document/2,
          create_document/2]).
 
--export([init/3,
+-export([init/2,
          export_child_key/1,
          import_child_key/1]).
 
@@ -21,18 +24,18 @@ start_document({index, 0} = DocKey, Options) ->
     erod:start_document(DocKey, ?MODULE, Options);
 
 start_document(_DocKey, []) ->
-    {error, not_found}.
+    {error, document_not_found}.
 
 
 create_document(DocKey, Options) ->
     {ok, erod_document:new(DocKey, ?MODULE, Options)}.
 
 
-init({index, 0}, [], Doc) ->
+init({index, 0}, []) ->
     {Content, Children} = load_index(),
     Views = [{asc, 50, fun compare_asc/2},
              {desc, 50, fun compare_desc/2}],
-    {ok, Content, Children, Views, #?St{}, Doc}.
+    {ok, Content, Children, Views, #?St{}}.
 
 
 export_child_key(Key) -> {group, Key}.

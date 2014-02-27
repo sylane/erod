@@ -23,19 +23,34 @@
 
 %%%TODO: Add version match parameter (for implementing caching)
 
+-callback init(DocKey :: erod:key(), Options :: list()) ->
+    {ok, Content :: term(), Children :: list(),
+     Views :: erod:view_specs(), DocState :: term()}.
+
+
+-callback export_child_key(IntKey :: term()) -> ExtKey :: erod:key().
+
+
+-callback import_child_key(ExtKey :: erod:key()) -> IntKey :: term().
+
+
+-spec new(DocKey :: erod:key(), Module :: module(), Options :: list()) ->
+          erod:document().
+
 new(DocKey, Module, Options) ->
-    case Module:init(DocKey, Options, #?Doc{key = DocKey}) of
-        {ok, Content, Children, ViewSpecs, State, Doc} ->
+    case Module:init(DocKey, Options) of
+        {ok, Content, Children, ViewSpecs, State} ->
             ChildrenMap = erod_maps:from_items(Children),
             Views = create_views(ViewSpecs, Children, ChildrenMap),
             ViewMap = erod_maps:from_items(Views),
             erod_registry:register_document(DocKey, self()),
-            Doc#?Doc{sub_mod = Module,
-                     sub_state = State,
-                     content = Content,
-                     children = ChildrenMap,
-                     verlog = erod_document_verlog:new(),
-                     views = ViewMap}
+            #?Doc{key = DocKey,
+                  sub_mod = Module,
+                  sub_state = State,
+                  content = Content,
+                  children = ChildrenMap,
+                  verlog = erod_document_verlog:new(),
+                  views = ViewMap}
     end.
 
 

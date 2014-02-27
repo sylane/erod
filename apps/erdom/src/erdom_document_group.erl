@@ -1,11 +1,14 @@
 -module(erdom_document_group).
 
+-behaviour(erod_factory).
+-behaviour(erod_document).
+
 -include("erdom_internal.hrl").
 
 -export([start_document/2,
          create_document/2]).
 
--export([init/3,
+-export([init/2,
          export_child_key/1,
          import_child_key/1]).
 
@@ -19,7 +22,7 @@
 start_document({group, GroupId} = DocKey, Options) ->
     case erdom_storage:does_group_exist(GroupId) of
         true -> erod:start_document(DocKey, ?MODULE, Options);
-        false -> {error, not_found}
+        false -> {error, document_not_found}
     end;
 
 start_document(_DocKey, []) ->
@@ -30,13 +33,13 @@ create_document(DocKey, Options) ->
     {ok, erod_document:new(DocKey, ?MODULE, Options)}.
 
 
-init({group, GroupId}, [], Doc) ->
+init({group, GroupId}, []) ->
     {Content, Children} = load_group(GroupId),
     Views = [{asc, 50, fun compare_asc/2},
              {desc, 50, fun compare_desc/2},
              {asc_pres_first, 50, fun compare_asc_pres_first/2},
              {desc_pres_first, 50, fun compare_desc_pres_first/2}],
-    {ok, Content, Children, Views, #?St{}, Doc}.
+    {ok, Content, Children, Views, #?St{}}.
 
 
 export_child_key(Key) -> {user, Key}.
