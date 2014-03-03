@@ -71,13 +71,13 @@ failed(login, Reason, Ctx, #?St{cls = login} = St) ->
     send_error_reply(login, Reason, Ctx, St);
 
 failed(bind, Reason, _, #?St{cls = login} = St) ->
-    close_connection({internal_error, {bind_failed, Reason}}, St);
+    close_connection({bind_failed, Reason}, St);
 
 failed(restore, Error, Ctx, #?St{cls = reconnect} = St) ->
     send_error_reply(restore, Error, Ctx, St);
 
 failed(bind, Reason, _, #?St{cls = reconnect} = St) ->
-    close_connection({internal_error, {bind_failed, Reason}}, St);
+    close_connection({bind_failed, Reason}, St);
 
 failed(logout, Reason, Ctx, #?St{cls = logout} = St) ->
     send_error_reply(logout, Reason, Ctx, St);

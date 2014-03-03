@@ -29,8 +29,5 @@ encode(jsx, #?MODULE{code = Code, msg = Msg, debug = Debug}) ->
     DebugData = erlang:iolist_to_binary(io_lib:format("~p", [Debug])),
     [{<<"code">>, erodlib_jsx:integer_value(code, Code)},
      {<<"msg">>, erodlib_jsx:binary_value(code, Msg)},
-     {<<"debug">>, erodlib_jsx:binary_value(debug, DebugData)}];
-
-encode(Fmt, Error) ->
-    encode(Fmt, erodws_errors:map(Error)).
+     {<<"debug">>, erodlib_jsx:binary_value(debug, DebugData)}].
 

@@ -46,7 +46,8 @@ encode_error(json, Cls, Error) ->
     erodlib_jsx:encode(json, encode_error(jsx, Cls, Error));
 
 encode_error(Fmt, Cls, Error) ->
-    Data = erodws_proto_generic_error:encode(Fmt, Error),
+    ErrorRec = erodws_errors:map(Cls, Error),
+    Data = erodws_proto_generic_error:encode(Fmt, ErrorRec),
     encode_message(Fmt, error, Cls, undefined, Data).
 
 
@@ -54,7 +55,8 @@ encode_error_reply(json, Cls, Id, Error) ->
     erodlib_jsx:encode(json, encode_error_reply(jsx, Cls, Id, Error));
 
 encode_error_reply(Fmt, Cls, Id, Error) ->
-    Data = erodws_proto_generic_error:encode(Fmt, Error),
+    ErrorRec = erodws_errors:map(Cls, Error),
+    Data = erodws_proto_generic_error:encode(Fmt, ErrorRec),
     encode_message(Fmt, error, Cls, Id, Data).
 
 
@@ -118,8 +120,12 @@ encode_data(_Fmt, result, C, _Any)
   when C =:= reconnect; C =:= logout ->
     error({format_error, {value_not_allowed, data}});
 
-encode_data(Fmt, error, _Any, Data) ->
+encode_data(Fmt, error, _Cls, #erodws_proto_generic_error{} = Data) ->
     erodws_proto_generic_error:encode(Fmt, Data);
+
+encode_data(Fmt, error, Cls, Data) ->
+    ErrorRec = erodws_errors:map(Cls, Data),
+    erodws_proto_generic_error:encode(Fmt, ErrorRec);
 
 encode_data(_Fmt, _Type, _Cls, _Data) ->
     error(message_class_unknown).

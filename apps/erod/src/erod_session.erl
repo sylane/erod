@@ -95,7 +95,7 @@ close(Session, Reason) ->
 %%% ==========================================================================
 
 perform(Session, Action, Args, Ctx) ->
-    gen_fsm:send_event(Session, {perform, Action, Args, Ctx}).
+    gen_fsm:send_all_state_event(Session, {perform, Action, Args, Ctx}).
 
 
 %%% ==========================================================================
@@ -117,6 +117,9 @@ init([SessId, UserId, UserPid, Policy, Token]) ->
                             policy = Policy, mod = Mod,
                             sub = Mod:init(Opts)}).
 
+
+handle_event({perform, Action, Args, Ctx}, StateName, State) ->
+    perform_action(StateName, Action, Args, Ctx, State);
 
 handle_event(Event, StateName, State) ->
     lager:error("Unexpected event in state ~p: ~p", [StateName, Event]),
@@ -176,9 +179,6 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %%% unbound state callbacks
 %%% --------------------------------------------------------------------------
 
-unbound({perform, Action, Args, Ctx}, State) ->
-    perform_action(unbound, Action, Args, Ctx, State);
-
 unbound(unbound_timeout, State) ->
     #?St{user_id = UserId, sess_id = SessId, token = Token} = State,
     lager:debug("Session ~p for user ~p with token ~p time exausted.",
@@ -196,9 +196,6 @@ unbound(Event, From, State) ->
 %%% --------------------------------------------------------------------------
 %%% bound state callbacks
 %%% --------------------------------------------------------------------------
-
-bound({perform, Action, Args, Ctx}, State) ->
-    perform_action(bound, Action, Args, Ctx, State);
 
 bound(Event, State) ->
     handle_event(Event, bound, State).
@@ -284,7 +281,7 @@ perform_action(unbound, bind, Proxy,
         {error, Reason, _NewProxy} ->
             erod_context:error("Session failed to accept to the proxy: ~p",
                                [Reason], Ctx),
-            erod_context:failed({bind_error, internal_error}, Ctx),
+            erod_context:failed(internal_error, Ctx),
             continue(unbound, State);
         {ok, NewProxy} ->
             erod_context:info("Session bound.", [], Ctx),
@@ -294,7 +291,7 @@ perform_action(unbound, bind, Proxy,
 
 perform_action(unbound, bind, _Proxy, Ctx, #?St{sess_id = SID} = State) ->
     erod_context:error("Cannot bind session ~p if not logged in.", [SID], Ctx),
-    erod_context:failed({bind_error, not_logged_in}, Ctx),
+    erod_context:failed(not_authenticated, Ctx),
     continue(unbound, State);
 
 perform_action(bound, bind, _Proxy,
@@ -302,17 +299,17 @@ perform_action(bound, bind, _Proxy,
                #?St{user_id = UID, sess_id = SID} = State) ->
     %TODO: Mayeb we want to close the old proxy and bind the new one...
     erod_context:error("Session already bound.", [], Ctx),
-    erod_context:failed({bind_error, already_bound}, Ctx),
+    erod_context:failed(already_bound, Ctx),
     continue(bound, State);
 
 perform_action(bound, bind, _Proxy, Ctx, #?St{sess_id = SID} = State) ->
     erod_context:error("Cannot bind session ~p if not logged in.", [SID], Ctx),
-    erod_context:failed({bind_error, not_logged_in}, Ctx),
+    erod_context:failed(not_authenticated, Ctx),
     continue(bound, State);
 
 perform_action(StateName, Action, Args, Ctx, State) ->
     erod_context:error("Session in state ~p do not know how to perform "
                        "action ~p with arguments ~p.",
                        [StateName, Action, Args], Ctx),
-    erod_context:failed({internal_error, unknown_action}, Ctx),
+    erod_context:failed(unknown_action, Ctx),
     continue(StateName, State).

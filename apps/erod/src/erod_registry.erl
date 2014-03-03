@@ -220,9 +220,8 @@ notify_change(DocKey, Patch) ->
     catch error:badarg -> ok end.
 
 
-perform(_Action, _Args, Ctx) ->
-    erod_context:failed(not_implemented, Ctx),
-    ok.
+perform(Action, Args, Ctx) ->
+    perform_action(Action, Args, Ctx).
 
 
 init([]) ->
@@ -366,3 +365,20 @@ notify_state_impl([], _DocKey, _State) -> ok;
 notify_state_impl([WatcherPid |Watchers], DocKey, State) ->
     erod_document_process:notify_state(WatcherPid, DocKey, State),
     notify_state_impl(Watchers, DocKey, State).
+
+
+perform_action(get_content, _Args, Ctx) ->
+    erod_context:failed(not_implemented, Ctx),
+    ok;
+
+perform_action(get_children, _Args, Ctx) ->
+    erod_context:failed(not_implemented, Ctx),
+    ok;
+
+perform_action(Action, Args, Ctx) ->
+    erod_context:error("Registry do not know how to perform action ~p with "
+                       "arguments ~p.", [Action, Args], Ctx),
+    erod_context:failed(unknown_action, Ctx),
+    ok.
+
+

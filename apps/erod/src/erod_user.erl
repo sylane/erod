@@ -147,7 +147,7 @@ perform_action(logout, _, Ctx, State) ->
 perform_action(Action, Args, Ctx, State) ->
     erod_context:error("User do not know how to perform action ~p with "
                        "arguments ~p.", [Action, Args], Ctx),
-    erod_context:failed({internal_error, unknown_action}, Ctx),
+    erod_context:failed(unknown_action, Ctx),
     State.
 
 
@@ -180,8 +180,9 @@ login_setup(SID, Sess, Token, Pol, Ctx, State) ->
             login_succeed(Token, NewCtx, add_session(SID, Sess, State))
     catch
         error:badarg ->
-            login_failed({internal_error, session_died}, Ctx, State)
+            login_failed(session_died, Ctx, State)
     end.
+
 
 login_succeed(Token, Ctx, State) ->
     erod_context:info("User login succeed.", [], Ctx),
@@ -193,7 +194,7 @@ login_succeed(Token, Ctx, State) ->
 
 login_failed(Reason, Ctx, State) ->
     erod_context:info("User login failed.", [], Ctx),
-    erod_context:failed({login_error, Reason}, Ctx),
+    erod_context:failed(Reason, Ctx),
     State.
 
 
@@ -201,7 +202,7 @@ perform_logout(#?Ctx{user_id = UID} = Ctx, #?St{user_id = UID} = State) ->
     #?Ctx{sess_id = SID, sess = Sess} = Ctx,
     case has_session(SID, State) of
         false ->
-            logout_failed({internal_error, session_not_found}, Ctx, State);
+            logout_failed(session_not_found, Ctx, State);
         {true, {SID, Sess}} ->
             logout_close_session(Sess, Ctx, State)
     end;
@@ -215,7 +216,7 @@ perform_logout(Ctx, #?St{user_id = UID} = State) ->
 logout_close_session(Sess, Ctx, State) ->
     case erod_session:close(Sess, normal) of
         {error, Reason} ->
-            logout_failed({internal_error, Reason}, Ctx, State);
+            logout_failed(Reason, Ctx, State);
         ok ->
             logout_succeed(Ctx, State)
     end.
@@ -228,5 +229,5 @@ logout_succeed(Ctx, State) ->
 
 
 logout_failed(Reason, Ctx, State) ->
-    erod_context:failed({logout_error, Reason}, Ctx),
+    erod_context:failed(Reason, Ctx),
     State.
