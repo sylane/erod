@@ -3,7 +3,8 @@
 -behaviour(erod_factory).
 -behaviour(erod_document).
 
--include("erdom_internal.hrl").
+-include("erdom_document.hrl").
+-include("erdom_storage.hrl").
 
 -export([start_document/2,
          create_document/2]).
@@ -15,7 +16,7 @@
 -define(St, ?MODULE).
 -record(?St, {}).
 
--define(Content, erdom_user_content) .
+-define(Content, erdom_document_user_content) .
 
 
 start_document({user, UserId} = DocKey, Options) ->
@@ -37,10 +38,10 @@ init({user, UserId}, []) ->
     {ok, Content, Children, [], #?St{}}.
 
 
-export_child_key(_IntKey) -> undefined.
+export_child_key(IntKey) -> IntKey.
 
 
-import_child_key(_ExtKey) -> undefined.
+import_child_key(ExtKey) -> ExtKey.
 
 
 
@@ -50,9 +51,9 @@ load_user(UserId) ->
     {Content, []}.
 
 user_data_to_content(UD) ->
-    #erdom_user{id = Id, first_name = FN,
-                last_name = LN, display_name = DN} = UD,
+    #erdom_storage_user{id = Id, first_name = FN,
+                        last_name = LN, display_name = DN} = UD,
     IdBin = integer_to_binary(Id),
-    #erdom_user_content{first_name = FN, last_name = LN,
-                        display_name = DN, picture = <<"user/", IdBin/bytes>>,
-                        presence = offline, connected = false, status = <<>>}.
+    #?Content{first_name = FN, last_name = LN,
+              display_name = DN, picture = <<"user/", IdBin/bytes>>,
+              presence = offline, connected = false, status = <<>>}.

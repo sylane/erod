@@ -2,11 +2,9 @@
 
 -behaviour(supervisor).
 
--include("erod_internal.hrl").
-
 -export([start_link/0]).
 
--export([start_child/1]).
+-export([start_child/5]).
 
 -export([init/1]).
 
@@ -17,8 +15,8 @@ start_link() ->
     supervisor:start_link({local, ?PROCESS}, ?MODULE, []).
 
 
-start_child(SessionToken) ->
-    supervisor:start_child(?PROCESS, [SessionToken]).
+start_child(SessId, UserId, UserPid, Policy, Token) ->
+    supervisor:start_child(?PROCESS, [SessId, UserId, UserPid, Policy, Token]).
 
 
 init([]) ->

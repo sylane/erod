@@ -1,15 +1,18 @@
 -module(erod).
 
 -include("erod_document.hrl").
+-include("erod_policy.hrl").
 
--export([start_document/3,
-         start_websocket/1]).
+-export([start_document/3]).
 
 
 -type key() :: {atom(), integer() | binary() | tuple()}.
 -type version() :: term().
 -type view_id() :: atom().
 -type page_id() :: pos_integer().
+-type user_id() :: pos_integer().
+-type session_id() :: pos_integer().
+-type session_token() :: binary().
 
 -type content_type() :: entity | patch.
 -type entity() :: tuple().
@@ -17,24 +20,25 @@
 -type entity_items() :: list(entity_item()) | [].
 -type patch() :: list().
 
--opaque document() :: tuple().
+-type view_spec() :: {ViewId :: atom(),
+                      PageSize :: pos_integer(),
+                      OrderFun :: function()}.
+-type view_specs() :: list(view_spec()) | [].
+
 -type content() :: #erod_content{}.
 -type page() :: #erod_page{}.
+-type policy() :: #erod_policy{}.
 
--type view_spec() :: {atom(), module(), list()}.
--type view_specs() :: list(view_spec()).
+-type document() :: erod_document:document().
+-type context() :: erod_context:context().
+-type proxy() :: erod_proxy:proxy().
 
 -export_type([key/0, version/0, view_id/0, page_id/0,
-              content_type/0, entity/0, entity_item/0, entity_items/0, patch/0,
-              document/0, content/0, page/0,
-              view_spec/0, view_specs/0]).
-
-
-start_websocket(Port) when is_integer(Port) ->
-    Dispatch = cowboy_router:compile(
-                 [ {'_', [{'_', erod_connection, []}]} ]),
-    cowboy:start_http(http_listener, 100, [{port, 8888}],
-                      [{env, [{dispatch, Dispatch}]}]).
+              user_id/0, session_id/0, session_token/0,
+              content_type/0, view_spec/0, view_specs/0,
+              entity/0, entity_item/0, entity_items/0, patch/0,
+              content/0, page/0, policy/0,
+              document/0, context/0, proxy/0]).
 
 
 start_document(DocKey, Factory, Options) ->

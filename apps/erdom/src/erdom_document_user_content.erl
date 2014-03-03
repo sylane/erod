@@ -1,17 +1,13 @@
--module(erdom_user_content).
+-module(erdom_document_user_content).
 
--include("erdom_internal.hrl").
+-include("erdom_document.hrl").
 
 -export([encode/2]).
 
 
-encode(jsx, #erdom_user_content{} = User) ->
-    #erdom_user_content{first_name = FN,
-                        last_name = LN,
-                        display_name = DN,
-                        picture = Pic,
-                        presence = Pres,
-                        connected = Conn} = User,
+encode(jsx, Content) ->
+    #?MODULE{first_name = FN, last_name = LN, display_name = DN,
+             picture = Pic, presence = Pres, connected = Conn} = Content,
     [{<<"first_name">>, erodlib_jsx:binary_value(first_name, FN)},
      {<<"last_name">>, erodlib_jsx:binary_value(last_name, LN)},
      {<<"display_name">>, erodlib_jsx:binary_value(display_name, DN)},

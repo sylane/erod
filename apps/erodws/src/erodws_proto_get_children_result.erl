@@ -1,12 +1,13 @@
--module(erod_message_get_children_result).
+-module(erodws_proto_get_children_result).
 
--include("erodws_internal.hrl").
+-include_lib("erod/include/erod_document.hrl").
 
 -export([encode/2]).
 
 
-encode(jsx, #?MsgGetChiRes{page = #erod_page{type = entity}} = Res) ->
-    #?MsgGetChiRes{page = Page} = Res,
+encode(jsx, unchanged) -> undefined;
+
+encode(jsx, #erod_page{type = entity} = Page) ->
     #erod_page{key = Key, ver = Ver, view = ViewId, page = PageId,
                size = PageSize, total = TotalSize, data = Data} = Page,
     [{<<"key">>, erodlib_jsx:key_value(key, Key)},
@@ -19,8 +20,7 @@ encode(jsx, #?MsgGetChiRes{page = #erod_page{type = entity}} = Res) ->
                     |erodlib_jsx:struct_value(page, V)]
                    || {K, V} <- Data]}];
 
-encode(jsx, #?MsgGetChiRes{page = #erod_page{type = patch}} = Res) ->
-    #?MsgGetChiRes{page = Page} = Res,
+encode(jsx, #erod_page{type = patch} = Page) ->
     #erod_page{key = Key, ver = Ver, view = ViewId, page = PageId,
                size = PageSize, total = TotalSize, data = Data} = Page,
     [{<<"key">>, erodlib_jsx:key_value(key, Key)},

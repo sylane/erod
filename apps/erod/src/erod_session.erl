@@ -7,13 +7,11 @@
 
 -behaviour(gen_fsm).
 
-%%% FIXME: handle the case of reconnection when already connected.
-
 %%% ==========================================================================
 %%% Includes
 %%% ==========================================================================
 
--include("erod_internal.hrl").
+-include("erod_context.hrl").
 
 
 %%% ==========================================================================
@@ -21,12 +19,13 @@
 %%% ==========================================================================
 
 %%% Start/Stop functions
--export([start_link/1]).
+-export([start_link/5]).
 
 %%% API functions
--export([bind_context/1]).
--export([disband_context/1]).
--export([route/3]).
+-export([close/2]).
+
+%%% Internal protocol functions
+-export([perform/4]).
 
 %%% Behaviour gen_fsm standard callbacks
 -export([init/1,
@@ -37,9 +36,8 @@
          code_change/4]).
 
 %%% Behaviout gen_fsm states callbacks
--export([wait_login/2, wait_login/3,
-         established/2, established/3,
-         wait_reconnect/2, wait_reconnect/3]).
+-export([unbound/2, unbound/3,
+         bound/2, bound/3]).
 
 
 %%% ==========================================================================
@@ -48,47 +46,56 @@
 
 -define(St, ?MODULE).
 
-%%% The time the session will wait for a client to login.
--define(WAIT_LOGIN_TIMEOUT, 10000).
-
-%%% The time the session will wait for a client to reconnect.
--define(WAIT_RECONNECT_TIMEOUT, 30*60*1000).
+%%% The time the session will wait for a client to bind.
+-define(UNBOUND_TIMEOUT, 30*60*1000).
 
 
 %%% ==========================================================================
 %%% Records
 %%% ==========================================================================
 
--record(?St, {token :: binary(),
-              conn :: pid() | undefined,
-              user :: pid() | undefined,
-              policy :: erod_session_policy() | undefined,
-              login_timeref :: reference() | undefined,
-              reconnect_timeref :: reference() | undefined}).
+-record(?St, {sess_id :: pos_integer(),
+              user_id :: pos_integer(),
+              user :: pid(),
+              policy :: erod:policy(),
+              token :: binary(),
+              proxy :: erod:proxy() | undefined,
+              mod :: module(),
+              sub :: term(),
+              unbound_timer :: reference() | undefined}).
+
+
+%%% ==========================================================================
+%%% Behaviour erod_session Specification
+%%% ==========================================================================
+
+-callback init(Options)
+    -> State
+    when Options :: term(), State :: term().
 
 
 %%% ==========================================================================
 %%% Start/Stop Functions
 %%% ==========================================================================
 
-start_link(SessionToken) ->
-    gen_fsm:start_link(?MODULE, [SessionToken], []).
+start_link(SessId, UserId, UserPid, Policy, Token) ->
+    gen_fsm:start_link(?MODULE, [SessId, UserId, UserPid, Policy, Token], []).
 
 
 %%% ==========================================================================
 %%% API Functions
 %%% ==========================================================================
 
-bind_context(#?Ctx{sess = Session} = Ctx) ->
-    gen_fsm:sync_send_event(Session, {bind_context, Ctx}).
+close(Session, Reason) ->
+    gen_fsm:sync_send_event(Session, {close, Reason}).
 
 
-disband_context(#?Ctx{sess = Session} = Ctx) ->
-    gen_fsm:sync_send_event(Session, {disband_context, Ctx}).
+%%% ==========================================================================
+%%% Internal Protocol Functions
+%%% ==========================================================================
 
-
-route(Session, #?Msg{} = Msg, #?Ctx{} = Ctx) ->
-    gen_fsm:send_event(Session, {route, Msg, Ctx}).
+perform(Session, Action, Args, Ctx) ->
+    gen_fsm:send_event(Session, {perform, Action, Args, Ctx}).
 
 
 %%% ==========================================================================
@@ -99,15 +106,28 @@ route(Session, #?Msg{} = Msg, #?Ctx{} = Ctx) ->
 %%% Standard callbacks
 %%% --------------------------------------------------------------------------
 
-init([SessionToken]) ->
-    lager:info("Starting session ~p...", [SessionToken]),
+init([SessId, UserId, UserPid, Policy, Token]) ->
+    lager:info("Session ~p with token ~p started for user ~p.",
+               [SessId, Token, UserId]),
     process_flag(trap_exit, true),
-    bootstrap(wait_login, #?St{token = SessionToken}).
+    {ok, AppName} = application:get_application(),
+    {ok, {Mod, Opts}} = application:get_env(AppName, session_mod),
+    bootstrap(unbound, #?St{sess_id = SessId, token = Token,
+                            user_id = UserId, user = UserPid,
+                            policy = Policy, mod = Mod,
+                            sub = Mod:init(Opts)}).
+
 
 handle_event(Event, StateName, State) ->
     lager:error("Unexpected event in state ~p: ~p", [StateName, Event]),
     stop(StateName, {unexpected_event, StateName, Event}, State).
 
+
+handle_sync_event({close, Reason}, _From, StateName, State) ->
+    #?St{sess_id = SessId, token = Token} = State,
+    lager:debug("Session ~p with token ~p is being closed: ~p",
+                [SessId, Token, Reason]),
+    stop_reply(ok, StateName, Reason, State);
 
 handle_sync_event(Event, {From, _Ref}, StateName, State) ->
     lager:error("Unexpected event from ~p in state ~p: ~p",
@@ -116,16 +136,35 @@ handle_sync_event(Event, {From, _Ref}, StateName, State) ->
                {unexpected_event, StateName, From, Event}, State).
 
 
-handle_info({'EXIT', _Conn, _Reason} = Event, StateName, State) ->
-    ?MODULE:StateName(Event, State);
+handle_info({'EXIT', User, _}, StateName, #?St{user = User} = State) ->
+    #?St{sess_id = SessId, user_id = UserId} = State,
+    lager:debug("Session ~p's user ~p died while ~p, committing suicide.",
+                [SessId, UserId, StateName]),
+    stop(StateName, user_died, State#?St{proxy = undefined});
 
-handle_info(Info, StateName, State) ->
+handle_info(Info, StateName, #?St{proxy = undefined} = State) ->
     lager:warning("Unexpected message in state ~p: ~p", [StateName, Info]),
-    continue(StateName, State).
+    continue(StateName, State);
+
+handle_info(Info, StateName, #?St{proxy = Proxy} = State) ->
+    case erod_proxy:handle_info(Info, Proxy) of
+        ignored ->
+            lager:warning("Unexpected message in state ~p: ~p",
+                          [StateName, Info]),
+            continue(StateName, State);
+        {ok, NewProxy} ->
+            continue(StateName, State#?St{proxy = NewProxy});
+        {dead, Reason, NewProxy} ->
+            erod_proxy:info("Session proxy died, removing binding: ~p",
+                            [Reason], NewProxy),
+            next(StateName, unbound, State#?St{proxy = undefined})
+    end.
 
 
-terminate(Reason, StateName, _State) ->
-    lager:info("Terminating session in state ~p: ~p", [StateName, Reason]),
+terminate(Reason, StateName, State) ->
+    #?St{sess_id = SessId, user_id = UserId, token = Token} = State,
+    lager:info("Session ~p for user ~p with token ~p terminated in state ~p: ~p",
+               [SessId, UserId, Token, StateName, Reason]),
     ok.
 
 
@@ -134,163 +173,39 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 
 %%% --------------------------------------------------------------------------
-%%% wait_login state callbacks
+%%% unbound state callbacks
 %%% --------------------------------------------------------------------------
 
-wait_login({route, Msg, Ctx}, State) ->
-    lager:debug("Routing through wait_login session: ~p", [Msg]),
-    case route_login(Msg, Ctx, State) of
-        {stop, NewState} -> stop(wait_login, normal, NewState);
-        %{error, Reason, NewState} -> stop(wait_login, Reason, NewState);
-        {ok, NewState} -> continue(wait_login, NewState)
-    end;
+unbound({perform, Action, Args, Ctx}, State) ->
+    perform_action(unbound, Action, Args, Ctx, State);
 
-wait_login(login_timeout, State) ->
-    lager:debug("Session ~p login time exausted, terminating...", [State#?St.token]),
-    stop(wait_login, normal, State);
+unbound(unbound_timeout, State) ->
+    #?St{user_id = UserId, sess_id = SessId, token = Token} = State,
+    lager:debug("Session ~p for user ~p with token ~p time exausted.",
+                [SessId, UserId, Token]),
+    stop(unbound, normal, State);
 
-wait_login(Event, State) ->
-    handle_event(Event, wait_login, State).
+unbound(Event, State) ->
+    handle_event(Event, unbound, State).
 
 
-wait_login({bind_context, Ctx}, _From, State) ->
-    #?Ctx{conn = Conn, user = User, policy = Policy} = Ctx,
-    lager:debug("Binding session to user ~p...", [User]),
-    case erod_connection:bind_context(Ctx) of
-        {error, _Reason} = Error-> reply(Error, wait_login, State);
-        ok ->
-            try erlang:link(Conn) of
-                true ->
-                    next_reply({ok, State#?St.token}, wait_login, established,
-                               State#?St{conn = Conn, user = User, policy = Policy})
-            catch
-                error:badarg ->
-                    % The connection is dead without sending any token,
-                    % the reconnection is impossible. R.I.P
-                    Error = {internal_error, connection_died},
-                    stop_reply({error, Error}, wait_login, Error, State)
-            end
-    end;
-
-wait_login({disband_context, #?Ctx{user = User}}, _From,
-           #?St{conn = undefined, user = undefined} = State) ->
-    lager:debug("Session binding with user ~p canceled", [User]),
-    reply(ok, wait_login, State);
-
-wait_login(Event, From, State) ->
-    handle_sync_event(Event, From, wait_login, State).
+unbound(Event, From, State) ->
+    handle_sync_event(Event, From, unbound, State).
 
 
 %%% --------------------------------------------------------------------------
-%%% established state callbacks
+%%% bound state callbacks
 %%% --------------------------------------------------------------------------
 
-established({route, Msg, #?Ctx{conn = Conn, sess = Sess, user = User} = Ctx},
-            #?St{conn = Conn, user = User} = State) when Sess =:= self() ->
-    lager:debug("Routing through established session: ~p", [Msg]),
-    case route_established(Msg, Ctx, State) of
-        %{stop, NewState} -> stop(established, normal, NewState);
-        %{error, Reason, NewState} -> stop(estalished, Reason, NewState);
-        {ok, NewState} -> continue(established, NewState)
-    end;
+bound({perform, Action, Args, Ctx}, State) ->
+    perform_action(bound, Action, Args, Ctx, State);
 
-established({route, Msg, Ctx}, State) ->
-    erod_context:discard(Ctx, Msg),
-    continue(established, State);
-
-established({'EXIT', Conn, _}, #?St{conn = Conn} = State) ->
-    lager:debug("Connection ~p died, waiting for reconnection...", [Conn]),
-    next(established, wait_reconnect,
-         State#?St{conn = undefined, policy = undefined});
-
-established({'EXIT', User, _}, #?St{user = User} = State) ->
-    lager:debug("User ~p died while in state established, committing suicide...", [User]),
-    stop(established, user_died,
-         State#?St{conn = undefined, user = undefined, policy = undefined});
-
-established(Event, State) ->
-    handle_event(Event, established, State).
+bound(Event, State) ->
+    handle_event(Event, bound, State).
 
 
-established({bind_context, _Ctx}, _From, State) ->
-    % Use and internal_error because this is NOT supposed to happen
-    Error = {internal_error, session_already_connected},
-    reply({error, Error}, established, State);
-
-established({disband_context, #?Ctx{conn = Conn, user = User} = Ctx}, _From,
-            #?St{conn = Conn, user = User} = State) ->
-    lager:debug("Detaching session from user ~p...", [User]),
-    erod_connection:disband_context(Ctx),
-    catch erlang:unlink(Conn),
-    stop_reply(ok, established, normal,
-               State#?St{conn = undefined, user = undefined, policy = undefined});
-
-established({disband_context, Ctx}, _From, State) ->
-    lager:warning("Cannot detach from unknown context: ~p...", [Ctx]),
-    reply({error, {internal_error, bad_context}}, established, State);
-
-established(Event, From, State) ->
-    handle_sync_event(Event, From, established, State).
-
-
-%%% --------------------------------------------------------------------------
-%%% wait_reconnect state callback
-%%% --------------------------------------------------------------------------
-
-wait_reconnect({route, Msg, Ctx}, State) ->
-    lager:debug("Routing through wait_reconnect session: ~p", [Msg]),
-    case route_reconnect(Msg, Ctx, State) of
-        %{stop, NewState} -> stop(wait_reconnect, normal, NewState);
-        %{error, Reason, NewState} -> stop(wait_reconnect, Reason, NewState);
-        {ok, NewState} -> continue(wait_reconnect, NewState)
-    end;
-
-wait_reconnect({'EXIT', User, _}, #?St{user = User} = State) ->
-    lager:debug("User ~p died while in state wait_reconnect, committing suicide...", [User]),
-    stop(wait_reconnect, user_died,
-         State#?St{user = undefined, policy = undefined});
-
-wait_reconnect(reconnect_timeout, State) ->
-    lager:debug("Session ~p reconnection time exausted, terminating...", [State#?St.token]),
-    stop(wait_reconnect, normal, State);
-
-wait_reconnect(Event, State) ->
-    handle_event(Event, established, State).
-
-
-wait_reconnect({bind_context, #?Ctx{user = User} = Ctx}, _From,
-               #?St{user = User} = State) ->
-    #?Ctx{conn = Conn, policy = Policy} = Ctx,
-    lager:debug("Re-binding session to user ~p...", [User]),
-    case erod_connection:bind_context(Ctx) of
-        {error, _Reason} = Error-> reply(Error, wait_reconnect, State);
-        ok ->
-            try erlang:link(Conn) of
-                true ->
-                    next_reply({ok, State#?St.token}, wait_reconnect, established,
-                               State#?St{conn = Conn, policy = Policy})
-            catch
-                error:badarg ->
-                    Error = {internal_error, connection_died},
-                    reply({error, Error}, wait_reconnect, State)
-            end
-    end;
-
-wait_reconnect({bind_context, Ctx}, _From, State) ->
-    lager:warning("Cannot attach to unknown context: ~p...", [Ctx]),
-    reply({error, {internal_error, bad_context}}, wait_reconnect, State);
-
-wait_reconnect({disband_context, #?Ctx{user = User}}, _From,
-               #?St{user = User} = State) ->
-    lager:debug("Detaching session from user ~p...", [User]),
-    stop_reply(ok, wait_reconnect, normal, State#?St{user = undefined});
-
-wait_reconnect({disband_context, Ctx}, _From, State) ->
-    lager:warning("Cannot dettach from unknown context: ~p...", [Ctx]),
-    reply({error, {internal_error, bad_context}}, wait_reconnect, State);
-
-wait_reconnect(Event, From, State) ->
-    handle_sync_event(Event, From, wait_reconnect, State).
+bound(Event, From, State) ->
+    handle_sync_event(Event, From, bound, State).
 
 
 %%% ==========================================================================
@@ -301,16 +216,16 @@ wait_reconnect(Event, From, State) ->
 %%% State machine functions
 %%% --------------------------------------------------------------------------
 
-bootstrap(wait_login, State) ->
-    TimeRef = gen_fsm:send_event_after(?WAIT_LOGIN_TIMEOUT, login_timeout),
-    {ok, wait_login, State#?St{login_timeref = TimeRef}}.
+bootstrap(unbound, State) ->
+    TimeRef = gen_fsm:send_event_after(?UNBOUND_TIMEOUT, unbound_timeout),
+    {ok, unbound, State#?St{unbound_timer = TimeRef}}.
 
 
 continue(StateName, State) ->
     {next_state, StateName, State}.
 
-reply(Reply, StateName, State) ->
-    {reply, Reply, StateName, State}.
+%% reply(Reply, StateName, State) ->
+%%     {reply, Reply, StateName, State}.
 
 
 stop(StateName, Reason, State) ->
@@ -325,84 +240,79 @@ next(From, To, State) ->
     {next_state, To, enter(To, transition(From, To, leave(From, State)))}.
 
 
-next_reply(Reply, From, To, State) ->
-    {reply, Reply, To, enter(To, transition(From, To, leave(From, State)))}.
+%% next_reply(Reply, From, To, State) ->
+%%     {reply, Reply, To, enter(To, transition(From, To, leave(From, State)))}.
 
 
-leave(wait_login, #?St{login_timeref = TimeRef} = State) ->
+leave(unbound, #?St{unbound_timer = TimeRef} = State) ->
     _ = gen_fsm:cancel_timer(TimeRef),
-    State#?St{login_timeref = undefined};
+    State#?St{unbound_timer = undefined};
 
-leave(wait_reconnect, #?St{reconnect_timeref = TimeRef} = State) ->
-    _ = gen_fsm:cancel_timer(TimeRef),
-    State#?St{reconnect_timeref = undefined};
-
-leave(_StateName, State) ->
+leave(bound, State) ->
     State.
 
 
-transition(wait_login, established, State) -> State;
+transition(unbound, bound, State) -> State;
 
-transition(established, wait_reconnect, State) -> State;
-
-transition(wait_reconnect, established, State) -> State.
+transition(bound, unbound, State) -> State.
 
 
-enter(wait_reconnect, State) ->
-    TimeRef = gen_fsm:send_event_after(?WAIT_RECONNECT_TIMEOUT, reconnect_timeout),
-    State#?St{reconnect_timeref = TimeRef};
+enter(unbound, State) ->
+    TimeRef = gen_fsm:send_event_after(?UNBOUND_TIMEOUT, unbound_timeout),
+    State#?St{unbound_timer = TimeRef};
 
-enter(_StateName, State) ->
+enter(bound, State) ->
     State.
 
 
 %%% --------------------------------------------------------------------------
-%%% Routing functions
+%%% Actions
 %%% --------------------------------------------------------------------------
 
-route_login(#?Msg{type = request, cls = login} = Req, Ctx, State) ->
-    case erod_context:safe_decode_data(Ctx, Req, ?MsgLogReq) of
-        {error, _Reason} -> {ok, State};
-        {ok, #?Msg{data = LogReq} = NewReq} ->
-            UserIdent = ?MsgLogReq:as_identity(LogReq),
-            case erod_user_manager:get_user(UserIdent) of
-                {ok, User} ->
-                    erod_user:route(User, NewReq, Ctx#?Ctx{sess = self()}),
-                    {ok, State};
-                {error, Reason} ->
-                    Error = {login_error, Reason},
-                    erod_context:reply_error(Ctx, NewReq, Error),
-                    {stop, State}
-            end
+perform_action(StateName, restore, _Ident, Ctx, State) ->
+    %TODO: Support identity check
+    #?St{sess_id = SID, user_id = UID, user = User, policy = Pol} = State,
+    NewCtx = erod_context:'_attach'(UID, User, SID, self(), Pol, Ctx),
+    erod_context:info("Session restored.", [], Ctx),
+    erod_context:done(NewCtx),
+    continue(StateName, State);
+
+perform_action(unbound, bind, Proxy,
+               #?Ctx{user_id = UID, sess_id = SID} = Ctx,
+               #?St{user_id = UID, sess_id = SID} = State) ->
+    case erod_proxy:accept(Ctx, Proxy) of
+        {error, Reason, _NewProxy} ->
+            erod_context:error("Session failed to accept to the proxy: ~p",
+                               [Reason], Ctx),
+            erod_context:failed({bind_error, internal_error}, Ctx),
+            continue(unbound, State);
+        {ok, NewProxy} ->
+            erod_context:info("Session bound.", [], Ctx),
+            erod_context:done(Ctx),
+            next(unbound, bound, State#?St{proxy = NewProxy})
     end;
 
-route_login(Msg, Ctx, State) ->
-    erod_context:discard(Ctx, Msg),
-    {ok, State}.
+perform_action(unbound, bind, _Proxy, Ctx, #?St{sess_id = SID} = State) ->
+    erod_context:error("Cannot bind session ~p if not logged in.", [SID], Ctx),
+    erod_context:failed({bind_error, not_logged_in}, Ctx),
+    continue(unbound, State);
 
+perform_action(bound, bind, _Proxy,
+               #?Ctx{user_id = UID, sess_id = SID} = Ctx,
+               #?St{user_id = UID, sess_id = SID} = State) ->
+    %TODO: Mayeb we want to close the old proxy and bind the new one...
+    erod_context:error("Session already bound.", [], Ctx),
+    erod_context:failed({bind_error, already_bound}, Ctx),
+    continue(bound, State);
 
-route_established(#?Msg{type = request, cls = logout} = Req, Ctx, State) ->
-    erod_user:route(State#?St.user, Req, Ctx),
-    {ok, State};
+perform_action(bound, bind, _Proxy, Ctx, #?St{sess_id = SID} = State) ->
+    erod_context:error("Cannot bind session ~p if not logged in.", [SID], Ctx),
+    erod_context:failed({bind_error, not_logged_in}, Ctx),
+    continue(bound, State);
 
-route_established(Msg, Ctx, State) ->
-    erod_context:discard(Ctx, Msg),
-    {ok, State}.
-
-
-route_reconnect(#?Msg{type = request, cls = reconnect} = Req, Ctx, State) ->
-    #?St{token = Token, user = User} = State,
-    case erod_context:safe_decode_data(Ctx, Req, ?MsgRecReq) of
-        {error, _Reason} -> {ok, State};
-        {ok, #?Msg{data = #?MsgRecReq{session = Token}} = NewReq} ->
-            erod_user:route(User, NewReq, Ctx#?Ctx{sess = self()}),
-            {ok, State};
-        {ok, NewReq} ->
-            Error = {reconnect_error, {internal_error, bad_session}},
-            erod_context:reply_error(Ctx, NewReq, Error),
-            {ok, State}
-    end;
-
-route_reconnect(Msg, Ctx, State) ->
-    erod_context:discard(Ctx, Msg),
-    {ok, State}.
+perform_action(StateName, Action, Args, Ctx, State) ->
+    erod_context:error("Session in state ~p do not know how to perform "
+                       "action ~p with arguments ~p.",
+                       [StateName, Action, Args], Ctx),
+    erod_context:failed({internal_error, unknown_action}, Ctx),
+    continue(StateName, State).

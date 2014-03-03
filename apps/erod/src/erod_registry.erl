@@ -2,8 +2,6 @@
 
 -behaviour(gen_server).
 
--include("erod_internal.hrl").
-
 -export([start_link/0]).
 
 -export([register_document/2,
@@ -18,6 +16,8 @@
          get_content/1, get_content/2, get_content/3,
          get_children/3, get_children/4, get_children/5,
          notify_change/2]).
+
+-export([perform/3]).
 
 -export([init/1,
          handle_call/3,
@@ -36,8 +36,6 @@
 
 -record(?St, {factories}).
 
-
-%%% FIXME: deadlock when creating a document that request other document content
 
 start_link() ->
     gen_server:start_link({local, ?PROCESS}, ?MODULE, [], []).
@@ -221,6 +219,10 @@ notify_change(DocKey, Patch) ->
         Watchers -> notify_change_impl(Watchers, DocKey, Patch)
     catch error:badarg -> ok end.
 
+
+perform(_Action, _Args, Ctx) ->
+    erod_context:failed(not_implemented, Ctx),
+    ok.
 
 
 init([]) ->

@@ -2,13 +2,14 @@
 
 -behaviour(gen_server).
 
--include("erdom_internal.hrl").
+-include("erdom_storage.hrl").
 
 -export([start_link/0]).
 
 -export([get_index/0,
          get_group/1,
          get_user/1,
+         get_user_by_username/1,
          does_group_exist/1,
          does_user_exist/1]).
 
@@ -43,6 +44,10 @@ get_user(UserId) ->
     gen_server:call(?PROCESS, {get_user, UserId}).
 
 
+get_user_by_username(Username) ->
+    gen_server:call(?PROCESS, {get_user_by_username, Username}).
+
+
 does_group_exist(GroupId) ->
     gen_server:call(?PROCESS, {does_group_exist, GroupId}).
 
@@ -54,6 +59,7 @@ does_user_exist(UserId) ->
 
 init([]) ->
     lager:info("Starting erdom dummy storage...", []),
+    _ = random:seed({10, 2, 77}),
     {ok, AppName} = application:get_application(),
     PrivDir = code:priv_dir(AppName),
     UserDataFilename = filename:join([PrivDir, "users.dat"]),
@@ -71,6 +77,15 @@ handle_call({get_user, UserId}, _From, State) ->
         none -> {reply, {error, not_found}, State}
     end;
 
+handle_call({get_user_by_username, Username}, _From, State) ->
+    #?St{users = Users} = State,
+    % As bad as it can be !
+    List = gb_trees:to_list(Users),
+    case [U || {_, U} <- List, U#erdom_storage_user.username =:= Username] of
+        [User] -> {reply, {ok, User}, State};
+        [] -> {reply, {error, not_found}, State}
+    end;
+
 handle_call({get_group, GroupId}, _From, State) ->
     #?St{groups = Groups} = State,
     case gb_trees:lookup(GroupId, Groups) of
@@ -80,7 +95,7 @@ handle_call({get_group, GroupId}, _From, State) ->
 
 handle_call(get_index, _From, State) ->
     #?St{groups = Groups} = State,
-    Index = #erdom_index{group_ids = gb_trees:keys(Groups)},
+    Index = #erdom_storage_index{group_ids = gb_trees:keys(Groups)},
     {reply, {ok, Index}, State};
 
 handle_call({does_group_exist, GroupId}, _From, State) ->
@@ -115,9 +130,11 @@ code_change(_OldVsn, State, _Extra) ->
 
 load_users(Filename) ->
     {ok, Terms} = file:consult(Filename),
-    Items = orddict:from_list([{U#erdom_user.id, U} || U <- Terms]),
-    Map = gb_trees:from_orddict(Items),
-    Map.
+    Users = [{I, #erdom_storage_user{id = I, username = U, password = P,
+                                     first_name = F, last_name = L,
+                                     display_name = D}}
+              || {I, U, P, F, L, D} <- Terms],
+    gb_trees:from_orddict(orddict:from_list(Users)).
 
 
 
@@ -139,7 +156,8 @@ create_groups(Index, GroupMap, Count) ->
             Name = iolist_to_binary(io_lib:format("Group ~3w", [Number])),
             Size = random:uniform(400) + 200,
             UserIds = pick_user_ids(Size, Index),
-            Group = #erdom_group{id = GroupId, name = Name, user_ids = UserIds},
+            Group = #erdom_storage_group{id = GroupId, name = Name,
+                                         user_ids = UserIds},
             NewGroupMap = gb_trees:insert(GroupId, Group, GroupMap),
             create_groups(Index, NewGroupMap, Count - 1)
     end.
@@ -154,7 +172,7 @@ pick_user_ids(0, _Index, Acc) -> gb_sets:to_list(Acc);
 pick_user_ids(Count, Index, Acc) ->
     Idx = random:uniform(gb_trees:size(Index)),
     {value, User} = gb_trees:lookup(Idx, Index),
-    UserId = User#erdom_user.id,
+    UserId = User#erdom_storage_user.id,
     case gb_sets:is_member(UserId, Acc) of
         true -> pick_user_ids(Count, Index, Acc);
         false -> pick_user_ids(Count - 1, Index, gb_sets:add(UserId, Acc))

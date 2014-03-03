@@ -6,7 +6,7 @@
 
 
 start(_StartType, _StartArgs) ->
-    case erod:start_websocket(8888) of
+    case erodws:start(8888) of
         {ok, _Pid} -> erdom_sup:start_link();
         {error, _Reason} = Error -> Error
     end.

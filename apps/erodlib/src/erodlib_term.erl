@@ -1,4 +1,4 @@
--module(erodlib_props).
+-module(erodlib_term).
 
 -export([decode/2,
          encode/2,
@@ -18,52 +18,52 @@
 decode(jsx, Jsx) -> decode_jsx_value(Jsx).
 
 
-encode(jsx, Props) -> encode_jsx_value(Props).
+encode(jsx, Term) -> encode_jsx_value(Term).
 
 
 
-get_atom(Key, Props) ->
-    bin2atom(Key, lookup(Key, Props)).
+get_atom(Key, Term) ->
+    bin2atom(Key, lookup(Key, Term)).
 
 
-get_integer(Key, Props) ->
-    ensure_integer(Key, lookup(Key, Props)).
+get_integer(Key, Term) ->
+    ensure_integer(Key, lookup(Key, Term)).
 
 
-get_allowed_atom(Key, Props, Allowed) ->
-    allowed(Key, bin2atom(Key, lookup(Key, Props)), Allowed).
+get_allowed_atom(Key, Term, Allowed) ->
+    allowed(Key, bin2atom(Key, lookup(Key, Term)), Allowed).
 
 
-get_binary(Key, Props) ->
-    ensure_bin(Key, lookup(Key, Props)).
+get_binary(Key, Term) ->
+    ensure_bin(Key, lookup(Key, Term)).
 
 
-get_binary(Key, Props, Default) ->
-    ensure_bin(Key, lookup(Key, Props), Default).
+get_binary(Key, Term, Default) ->
+    ensure_bin(Key, lookup(Key, Term), Default).
 
 
-get_struct(Key, Props) ->
-    ensure_struct(Key, lookup(Key, Props)).
+get_struct(Key, Term) ->
+    ensure_struct(Key, lookup(Key, Term)).
 
 
-get_struct(Key, Props, Default) ->
-    ensure_struct(Key, lookup(Key, Props), Default).
+get_struct(Key, Term, Default) ->
+    ensure_struct(Key, lookup(Key, Term), Default).
 
 
-get_key(Key, Props) ->
-    struct2key(Key, lookup(Key, Props)).
+get_key(Key, Term) ->
+    struct2key(Key, lookup(Key, Term)).
 
 
-get_ver(Key, Props, Default) ->
-    struct2ver(Key, lookup(Key, Props), Default).
+get_ver(Key, Term, Default) ->
+    struct2ver(Key, lookup(Key, Term), Default).
 
 
-get_bool(Key, Props, Default) ->
-    ensure_bool(Key, lookup(Key, Props), Default).
+get_bool(Key, Term, Default) ->
+    ensure_bool(Key, lookup(Key, Term), Default).
 
 
-ensure_undefined(Key, Props) ->
-    case lookup(Key, Props) of
+ensure_undefined(Key, Term) ->
+    case lookup(Key, Term) of
         false -> undefined;
         _ -> error({format_error, {key_not_allowed, Key}})
     end.
@@ -103,10 +103,10 @@ encode_jsx_key(K) when is_atom(K)  ->
     erodlib:atom2bin(K).
 
 
-lookup(Key, Props) when is_list(Props) ->
-    lists:keyfind(Key, 1, Props);
+lookup(Key, Term) when is_list(Term) ->
+    lists:keyfind(Key, 1, Term);
 
-lookup(_Key, _Props) ->
+lookup(_Key, _Term) ->
     error({format_error, bad_structure}).
 
 
@@ -183,9 +183,9 @@ allowed(Key, Value, Allowed) ->
     end.
 
 
-struct2key(Key, {Key, Props}) ->
-    Type = get_atom(type, Props),
-    Id = get_struct(id, Props),
+struct2key(Key, {Key, Term}) ->
+    Type = get_atom(type, Term),
+    Id = get_struct(id, Term),
     build_key(Key, Type, Id);
 
 struct2key(Key, false) ->
@@ -195,8 +195,8 @@ struct2key(Key, false) ->
 struct2ver(Key, {Key, null}, Default) ->
     Default;
 
-struct2ver(Key, {Key, Props}, _Default) ->
-    parse_ident_list(Key, Props);
+struct2ver(Key, {Key, Term}, _Default) ->
+    parse_ident_list(Key, Term);
 
 struct2ver(_Key, false, Default) ->
     Default.

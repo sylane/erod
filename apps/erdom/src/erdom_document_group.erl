@@ -3,7 +3,8 @@
 -behaviour(erod_factory).
 -behaviour(erod_document).
 
--include("erdom_internal.hrl").
+-include("erdom_document.hrl").
+-include("erdom_storage.hrl").
 
 -export([start_document/2,
          create_document/2]).
@@ -15,8 +16,9 @@
 -define(St, ?MODULE).
 -record(?St, {}).
 
--define(Content, erdom_group_content) .
--define(Child, erdom_group_child) .
+-define(UserContent, erdom_document_user_content).
+-define(Content, erdom_document_group_content).
+-define(Child, erdom_document_group_child).
 
 
 start_document({group, GroupId} = DocKey, Options) ->
@@ -80,7 +82,7 @@ load_group(GroupId) ->
     {ok, GroupData} = erdom_storage:get_group(GroupId),
     Content = group_data_to_content(GroupData),
     Children = [{UserId, get_child_and_watch(UserId)}
-                || UserId <- GroupData#erdom_group.user_ids],
+                || UserId <- GroupData#erdom_storage_group.user_ids],
     {Content, Children}.
 
 
@@ -95,16 +97,16 @@ get_child_and_watch(UserId) ->
 
 
 group_data_to_content(GD) ->
-    #erdom_group{name = N} = GD,
-    #erdom_group_content{name = N}.
+    #erdom_storage_group{name = N} = GD,
+    #?Content{name = N}.
 
 
 user_content_to_child(UC) ->
-    #erdom_user_content{display_name = N, presence = P, connected = C} = UC,
-    #erdom_group_child{name = N, presence = P, connected = C}.
+    #?UserContent{display_name = N, presence = P, connected = C} = UC,
+    #?Child{name = N, presence = P, connected = C}.
 
 
 user_data_to_child(UD) ->
-    #erdom_user{display_name = N} = UD,
-    #erdom_group_child{name = N, presence = offline, connected = false}.
+    #erdom_storage_user{display_name = N} = UD,
+    #?Child{name = N, presence = offline, connected = false}.
 

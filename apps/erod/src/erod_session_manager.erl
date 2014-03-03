@@ -2,11 +2,9 @@
 
 -behaviour(gen_server).
 
--include("erod_internal.hrl").
-
 -export([start_link/0]).
 
--export([new_session/0]).
+-export([new_session/3]).
 -export([find_session/1]).
 
 -export([init/1,
@@ -22,27 +20,22 @@
 -define(SESSION_PID_TO_TOKEN, erod_session_pid_to_token).
 
 -record(?St, {token_to_pid :: ets:tid(),
-              pid_to_token :: ets:tid()}).
+              pid_to_token :: ets:tid(),
+              next_id = 1 :: pos_integer()}).
 
 
 start_link() ->
     gen_server:start_link({local, ?PROCESS}, ?MODULE, [], []).
 
 
-new_session() ->
-    gen_server:call(?PROCESS, new_session).
+new_session(UserId, UserPid, Policy) ->
+    gen_server:call(?PROCESS, {new_session, UserId, UserPid, Policy}).
 
 
 find_session(Token) when is_binary(Token) ->
-    try ets:lookup(?SESSION_TOKEN_TO_PID, Token) of
+    case ets:lookup(?SESSION_TOKEN_TO_PID, Token) of
         [] -> {error, session_not_found};
         [{_, SessionPid}] -> {ok, SessionPid}
-    catch
-        % FIXME: Remove this defensive code.
-        eror:badarg ->
-            lager:error("Tried to find a session by its token but the ETS "
-                        "table does not seem to exist yet"),
-            {error, internal_error}
     end.
 
 
@@ -54,10 +47,11 @@ init([]) ->
     {ok, #?St{token_to_pid = T2P, pid_to_token = P2T}}.
 
 
-handle_call(new_session, _From, State) ->
-    case start_session(State) of
-        {ok, Sess, NewState} -> {reply, {ok, Sess}, NewState};
-        {error, Reason, NewState} -> {reply, {error, Reason}, NewState}
+handle_call({new_session, UserId, UserPid, Policy}, _From, State) ->
+    case start_session(UserId, UserPid, Policy, State) of
+        {error, Reason, NewState} -> {reply, {error, Reason}, NewState};
+        {ok, Id, Pid, Token, NewState} ->
+            {reply, {ok, Id, Pid, Token}, NewState}
     end;
 
 handle_call(Request, {From, _Ref}, State) ->
@@ -90,16 +84,17 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 
-start_session(#?St{pid_to_token = P2T, token_to_pid = T2P} = State) ->
+start_session(UserId, UserPid, Policy, State) ->
+    #?St{pid_to_token = P2T, token_to_pid = T2P, next_id = SessId} = State,
     {ok, Token, NewState} = find_unique_token(State),
-    case erod_session_sup:start_child(Token) of
+    case erod_session_sup:start_child(SessId, UserId, UserPid, Policy, Token) of
         {error, Reason} -> {error, Reason, NewState};
-        {ok, SessionPid} ->
-            erlang:monitor(process, SessionPid),
-            Item = {Token, SessionPid},
+        {ok, SessPid} ->
+            erlang:monitor(process, SessPid),
+            Item = {Token, SessPid},
             ets:insert(P2T, Item),
             ets:insert(T2P, Item),
-            {ok, SessionPid, NewState}
+            {ok, SessId, SessPid, Token, NewState#?St{next_id = SessId + 1}}
     end.
 
 

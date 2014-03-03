@@ -1,0 +1,13 @@
+FIXME:
+  * A connection spawns a session every login messages.
+  * A connection without session will never die by itself.
+! * Deadlock when creating a document that request other document content.
+  * Check multiple connections to the same sessions is working.
+
+TODO:
+  * Implement erod_indices:take_smallest_keys/4.
+  * Implement erod_indices:take_largest_keys/4.
+  * Implement erod_maps:trim_smallest/2.
+  * Add version match parameter to get_content and get_children (caching).
+  * Do some sort of patch history cleanup (use trim_smallest).
+  * Move authentication out of the protocol.

@@ -1,6 +1,8 @@
 -module(erodlib_jsx).
 
--export([binary_value/2,
+-export([decode/2,
+         encode/2,
+         binary_value/2,
          atom_value/2,
          allowed_atom_value/3,
          integer_value/2,
@@ -9,6 +11,24 @@
          key_value/2,
          ver_value/2,
          patch_value/2]).
+
+
+decode(json, Json) ->
+    try jsx:decode(Json) of
+%%TODO: Seems to fail dialyzer even though it is defined in decode/1 specs...
+%%         {incomplete, _} -> error({format_error, incomplete_json});
+        V when is_boolean(V); is_number(V); is_list(V); is_binary(V), V =:= null -> V;
+        _ -> error({format_error, bad_json})
+    catch
+        error:badarg ->
+            error({format_error, bad_json})
+    end.
+
+
+encode(json, Jsx) ->
+    try jsx:encode(Jsx)
+    catch error:badarg -> error({format_error, bad_structure})
+    end.
 
 
 binary_value(_Key, Bin) when is_binary(Bin) -> Bin;
@@ -62,9 +82,9 @@ struct_value(Key, Rec) when is_tuple(Rec) ->
               error({format_error, {unsuported_value, Key}})
     end;
 
-struct_value(_Key, Props) when is_list(Props) ->
+struct_value(_Key, Term) when is_list(Term) ->
     % We assume that if it is not a record it is a proplist
-    erodlib_props:encode(jsx, Props);
+    erodlib_term:encode(jsx, Term);
 
 struct_value(Key, _Other) ->
     error({format_error, {bad_value_type, Key}}).

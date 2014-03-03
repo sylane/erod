@@ -2,8 +2,6 @@
 
 -behaviour(gen_server).
 
--include("erod_internal.hrl").
-
 -export([start_link/3]).
 
 -export([init/1,

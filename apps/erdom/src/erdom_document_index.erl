@@ -3,7 +3,8 @@
 -behaviour(erod_factory).
 -behaviour(erod_document).
 
--include("erdom_internal.hrl").
+-include("erdom_document.hrl").
+-include("erdom_storage.hrl").
 
 
 -export([start_document/2,
@@ -16,8 +17,9 @@
 -define(St, ?MODULE).
 -record(?St, {}).
 
--define(Content, erdom_index_content) .
--define(Child, erdom_index_child) .
+-define(GroupContent, erdom_document_group_content).
+-define(Content, erdom_document_index_content).
+-define(Child, erdom_document_index_child).
 
 
 start_document({index, 0} = DocKey, Options) ->
@@ -54,7 +56,7 @@ load_index() ->
     {ok, IndexData} = erdom_storage:get_index(),
     Content = index_data_to_content(IndexData),
     Children = [{GroupId, get_child_and_watch(GroupId)}
-                || GroupId <- IndexData#erdom_index.group_ids],
+                || GroupId <- IndexData#erdom_storage_index.group_ids],
     {Content, Children}.
 
 
@@ -69,16 +71,16 @@ get_child_and_watch(GroupId) ->
 
 
 index_data_to_content(ID) ->
-    #erdom_index{} = ID,
-    #erdom_index_content{}.
+    #erdom_storage_index{} = ID,
+    #?Content{}.
 
 
 group_content_to_child(GC) ->
-    #erdom_group_content{name = N} = GC,
-    #erdom_index_child{name = N}.
+    #?GroupContent{name = N} = GC,
+    #?Child{name = N}.
 
 
 group_data_to_child(GD) ->
-    #erdom_group{name = N} = GD,
-    #erdom_index_child{name = N}.
+    #erdom_storage_group{name = N} = GD,
+    #?Child{name = N}.
 

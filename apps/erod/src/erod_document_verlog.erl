@@ -1,7 +1,5 @@
 -module(erod_document_verlog).
 
-%%% TODO: history cleanup
-
 -export([new/0,
          version/1,
          add_patch/2,

@@ -2,8 +2,6 @@
 
 -behaviour(supervisor).
 
--include("erod_internal.hrl").
-
 -export([start_link/0]).
 
 -export([start_child/3]).

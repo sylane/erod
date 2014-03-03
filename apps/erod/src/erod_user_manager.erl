@@ -2,8 +2,6 @@
 
 -behaviour(gen_server).
 
--include("erod_internal.hrl").
-
 -export([start_link/0]).
 
 -export([get_user/1]).
@@ -29,16 +27,10 @@ start_link() ->
     gen_server:start_link({local, ?PROCESS}, ?MODULE, [], []).
 
 
-get_user(#?UserIdent{} = UserIdent) ->
-    try ets:lookup(?USER_IDENT_TO_PID, UserIdent) of
+get_user(UserIdent) ->
+    case ets:lookup(?USER_IDENT_TO_PID, UserIdent) of
         [] -> gen_server:call(?PROCESS, {get_user, UserIdent});
         [{_, UserPid}] -> {ok, UserPid}
-    catch
-        % FIXME: Remove this defensive code.
-        eror:badarg ->
-            lager:error("Tried to find a user by its identity but the ETS "
-                        "table does not seem to exist"),
-            {error, internal_error}
     end.
 
 

@@ -1,6 +1,6 @@
 -module(erod_document).
 
--include("erod_internal.hrl").
+-include("erod_document.hrl").
 
 -export([new/3,
          key/1,
@@ -21,17 +21,23 @@
                verlog,
                views}).
 
-%%%TODO: Add version match parameter (for implementing caching)
-
--callback init(DocKey :: erod:key(), Options :: list()) ->
-    {ok, Content :: term(), Children :: list(),
-     Views :: erod:view_specs(), DocState :: term()}.
+-type document() :: #?Doc{}.
+-export_type([document/0]).
 
 
--callback export_child_key(IntKey :: term()) -> ExtKey :: erod:key().
+-callback init(DocKey, Options)
+    -> {ok, Content, Children, Views, DocState}
+    when DocKey :: erod:key(), Options :: list(),
+         Content :: term(), Children :: list(),
+         Views :: erod:view_specs(), DocState :: term().
 
+-callback export_child_key(IntKey)
+    -> ExtKey
+    when IntKey :: term(), ExtKey :: erod:key().
 
--callback import_child_key(ExtKey :: erod:key()) -> IntKey :: term().
+-callback import_child_key(ExtKey)
+    -> IntKey
+    when ExtKey :: erod:key(), IntKey :: term().
 
 
 -spec new(DocKey :: erod:key(), Module :: module(), Options :: list()) ->
@@ -59,13 +65,16 @@ key(#?Doc{key = Key}) -> Key.
 
 get_content(FromVer, Doc) ->
     #?Doc{key = DocKey, content = Content, verlog = VerLog} = Doc,
-    {Type, Ver, Data} =
-        case erod_document_verlog:get_patch(FromVer, VerLog) of
-            none -> {entity, erod_document_verlog:version(VerLog), Content};
-            unchanged -> unchanged;
-            Patch -> Patch
-        end,
-    #erod_content{key = DocKey, ver = Ver, type = Type, data = Data}.
+    case erod_document_verlog:get_patch(FromVer, VerLog) of
+        unchanged -> unchanged;
+        none ->
+            Ver = erod_document_verlog:version(VerLog),
+            #erod_content{key = DocKey, ver = Ver,
+                          type = entity, data = Content};
+        {patch, Ver, Patch} ->
+            #erod_content{key = DocKey, ver = Ver,
+                          type = patch, data = Patch}
+    end.
 
 
 get_children(ViewId, PageId, FromVer, Doc) ->
@@ -100,7 +109,6 @@ patch_child(_ChildKey, _Patch, Doc) ->
 
 handle_message({'$doc_call', Key, From, Request}, #?Doc{key = Key} = Doc) ->
     case handle_call(Request, From, Doc) of
-        {noreply, NewDoc} -> {ok, NewDoc};
         {reply, Reply, NewDoc} ->
             reply(From, Reply),
             {ok, NewDoc}

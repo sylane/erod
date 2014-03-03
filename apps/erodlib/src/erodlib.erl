@@ -2,7 +2,8 @@
 
 -export([maybe_atom/1,
          bin2atom/1,
-         atom2bin/1]).
+         atom2bin/1,
+         peer2bin/1]).
 
 
 maybe_atom(B) when is_binary(B) ->
@@ -19,3 +20,11 @@ bin2atom(B) when is_binary(B) ->
 
 atom2bin(A) when is_atom(A) ->
     erlang:atom_to_binary(A, utf8).
+
+
+peer2bin(undefined) -> <<"unknown">>;
+
+peer2bin({Addr, Port}) when is_tuple(Addr), is_integer(Port) ->
+    AddrBin = list_to_binary(inet_parse:ntoa(Addr)),
+    PortBin = integer_to_binary(Port),
+    <<AddrBin/binary, ":", PortBin/binary>>.
