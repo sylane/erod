@@ -38,14 +38,14 @@ perform_action(get_children, _, #?Ctx{policy = undefined} = Ctx) ->
 perform_action(get_children, Args, Ctx) ->
     erod_registry:perform(get_children, Args, Ctx);
 
-perform_action(login, {Identity, Credential}, #?Ctx{sess = undefined} = Ctx) ->
+perform_action(login, [Identity |_] = Args, #?Ctx{sess = undefined} = Ctx) ->
     try
         case erod_user_manager:get_user(Identity) of
             {error, Reason} ->
                 erod_context:debug("User ~p not found.", [Identity], Ctx),
                 erod_context:failed(Reason, Ctx);
             {ok, User} ->
-                erod_user:perform(User, login, Credential, Ctx)
+                erod_user:perform(User, login, Args, Ctx)
         end
     catch
         _:Error2 ->
@@ -57,14 +57,14 @@ perform_action(login, _, Ctx) ->
     erod_context:warning("Cannot login, already authenticated.", [], Ctx),
     erod_context:failed(already_authenticated, Ctx);
 
-perform_action(restore, {Identity, Token}, #?Ctx{sess = undefined} = Ctx) ->
+perform_action(restore, [_, Token |_] = Args, #?Ctx{sess = undefined} = Ctx) ->
     try
         case erod_session_manager:find_session(Token) of
             {error, Reason} ->
                 erod_context:debug("Session ~p not found.", [Token], Ctx),
                 erod_context:failed(Reason, Ctx);
             {ok, Session} ->
-                erod_session:perform(Session, restore, Identity, Ctx)
+                erod_session:perform(Session, restore, Args, Ctx)
         end
     catch
         _:Error2 ->

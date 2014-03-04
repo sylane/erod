@@ -12,25 +12,41 @@
 
 {"type":"request","id":"sdf3fse4","cls":"login","data":{"foo":"bar"}}
 
+
+
 {"type":"request","id":"xasdq3213sdfa","cls":"login","data":{"username":"foo","password":"bar"}}
 
-{"type":"request","id":"xasdq3213sdfa","cls":"login","data":{"username":"toto","password":"foo"}}
+{"type":"request","id":"xasdq3213sdfa","cls":"login","data":{"username":"pivy","password":"foo"}}
 
 
 
-{"type":"request","id":"xasdq3213sdfa","cls":"login","data":{"username":"tata","password":"bar"}}
+{"type":"request","id":"xasdq3213sdfa","cls":"login","data":{"username":"pivy","password":"1234"}}
 
 {"type":"request","id":"asdfq3fqaw3aw","cls": "logout"}
 
-{"type":"request","id":"sdf234fw3ww","cls":"reconnect","data":{"session": "1mbI2ymFqtG+A8b+EP8gYA=="}}
+{"type":"request","id":"sdf234fw3ww","cls":"reconnect","data":{"session": "dummy"}}
+
+{"type":"request","id":"sdf234fw3ww","cls":"reconnect","data":{"session": "ModlisbzhuLPeUzgQ6n9Vg=="}}
+
+
+
+{"type":"request","id":"1234","cls":"get_content","data":{"key":{"type":"dummy","id":0}}}
+
+{"type":"request","id":"1234","cls":"get_content","data":{"key":{"type":"user","id":0}}}
+
+{"type":"request","id":"1234","cls":"get_children","data":{"key":{"type":"index","id":0},"view":"foo","page":1}}
+
+{"type":"request","id":"1234","cls":"get_children","data":{"key":{"type":"index","id":0},"view":"desc","page":1000}}
+
+
 
 {"type":"request","id":"1234","cls":"get_content","data":{"key":{"type":"user","id":71185874}}}
 
-{"type":"request","id":"1234","cls":"get_content","data":{"key":{"type":"user","id":71185874},"ver":[90940979,0]}}
+{"type":"request","id":"1234","cls":"get_content","data":{"key":{"type":"user","id":71185874},"ver":[53184879,0]}}
 
 {"type":"request","id":"1234","cls":"get_children","data":{"key":{"type":"index","id":0},"view":"asc","page":1}}
 
-{"type":"request","id":"1234","cls":"get_children","data":{"key":{"type":"index","id":0},"view":"desc","page":1}}
+{"type":"request","id":"1234","cls":"get_children","data":{"key":{"type":"index","id":0},"view":"desc","page":5}}
 
 {"type":"request","id":"1234","cls":"get_children","data":{"key":{"type":"index","id":0},"view":"asc","page":1,"ver":[]}}
 
@@ -38,6 +54,6 @@
 
 {"type":"request","id":"1234","cls":"get_children","data":{"key":{"type":"group","id":42736466},"view":"desc","page":1}}
 
-{"type":"request","id":"1234","cls":"get_children","data":{"key":{"type":"group","id":42736466},"ver":[16316905,0],"view":"desc","page":1}}
+{"type":"request","id":"1234","cls":"get_children","data":{"key":{"type":"group","id":42736466},"ver":[45278827,0],"view":"desc","page":1}}
 
 

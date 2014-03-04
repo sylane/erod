@@ -21,7 +21,7 @@ start_link(DocKey, Factory, Options) ->
 
 
 init([DocKey, Factory, Options]) ->
-    lager:info("Starting document ~p worker...", [DocKey]),
+    lager:info("Worker process for document ~p started.", [DocKey]),
     case Factory:create_document(DocKey, Options) of
         {error, Reason} -> {stop, Reason};
         {ok, Doc} -> {ok, #?St{doc = Doc}}
@@ -48,7 +48,7 @@ handle_info(Info, #?St{doc = Doc} = State) ->
 
 
 terminate(Reason, #?St{doc = Doc}) ->
-    lager:info("Terminating document ~p worker: ~p",
+    lager:info("Worker process for document ~p has been terminated: ~p",
                [erod_document:key(Doc), Reason]),
     ok.
 

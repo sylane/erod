@@ -4,7 +4,7 @@
 
 -export([new/2,
          accept/2,
-         handle_info/2,
+         handle_message/2,
          notify/4]).
 
 -export([debug/3,
@@ -32,7 +32,7 @@
     when Ctx :: erod:context(), Proxy :: erod:proxy(),
          State :: term(), Reason :: term().
 
--callback handle_info(Message, Proxy, State)
+-callback handle_message(Message, Proxy, State)
     -> ignored
      | {ok, State}
      | {dead, Reason, State}
@@ -59,8 +59,8 @@ accept(#?Ctx{log_id = LogId} = Ctx, #?Proxy{mod = Mod, sub = Sub} = Proxy) ->
     end.
 
 
-handle_info(Message, #?Proxy{mod = Mod, sub = Sub} = Proxy) ->
-    case Mod:handle_info(Message, Proxy, Sub) of
+handle_message(Message, #?Proxy{mod = Mod, sub = Sub} = Proxy) ->
+    case Mod:handle_message(Message, Proxy, Sub) of
         ignored -> ignored;
         {ok, NewSub} -> {ok, Proxy#?Proxy{sub = NewSub}};
         {dead, Reason, NewSub} ->

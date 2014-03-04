@@ -1,6 +1,7 @@
 -module(erod_document).
 
 -include("erod_document.hrl").
+-include("erod_context.hrl").
 
 -export([new/3,
          key/1,
@@ -107,6 +108,13 @@ patch_child(_ChildKey, _Patch, Doc) ->
     {ok, Doc}.
 
 
+handle_message({'$doc_perform', Act, [K |_] = A, Ctx}, #?Doc{key = K} = Doc) ->
+    {ok, perform_action(Act, A, Ctx, Doc)};
+
+handle_message({'$doc_perform', _Action, _Args, _Ctx}, _Doc) ->
+    erod_context:debug("Ignore ~p ~p: ~p", [_Action, _Args, _Doc#?Doc.key], _Ctx),
+    ignored;
+
 handle_message({'$doc_call', Key, From, Request}, #?Doc{key = Key} = Doc) ->
     case handle_call(Request, From, Doc) of
         {reply, Reply, NewDoc} ->
@@ -146,3 +154,38 @@ create_views([{Id, PageSize, CompareFun} |Rem], Children, Map, Acc) ->
 
 reply({To, Tag}, Reply) ->
     try To ! {Tag, Reply} of _ -> ok catch _:_ -> ok end.
+
+
+perform_action(get_content, [_, Ver, Subs |_], Ctx, Doc) ->
+    erod_context:done(get_content(Ver, Doc), Ctx),
+    perform_subscription(Subs, Ctx, Doc);
+
+perform_action(get_children, [_, Ver, ViewId, PageId, Subs |_], Ctx, Doc) ->
+    case get_children(ViewId, PageId, Ver, Doc) of
+        {error, Reason} ->
+            erod_context:failed(Reason, Ctx),
+            Doc;
+        Result ->
+            erod_context:done(Result, Ctx),
+            perform_subscription(Subs, Ctx, Doc)
+    end;
+
+perform_action(Action, Args, Ctx, #?Doc{key = Key} = Doc) ->
+    erod_context:error("Document ~p doesn't know how to perform action ~p "
+                       "with arguments ~p.", [Key, Action, Args], Ctx),
+    erod_context:failed(unknown_action, Ctx),
+    Doc.
+
+
+perform_subscription(true, #?Ctx{sess = Sess}, #?Doc{key = Key} = Doc)
+  when Sess =/= undefined ->
+    erod_registry:add_watcher(Key, Sess),
+    Doc;
+
+perform_subscription(true, Ctx, #?Doc{key = Key} = Doc) ->
+    erod_context:warning("Document ~p cannot subscribe undefined session "
+                         "as a watcher.", [Key], Ctx),
+    Doc;
+
+perform_subscription(false, _Ctx, Doc) ->
+    Doc.

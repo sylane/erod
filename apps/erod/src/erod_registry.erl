@@ -221,11 +221,11 @@ notify_change(DocKey, Patch) ->
 
 
 perform(Action, Args, Ctx) ->
-    perform_action(Action, Args, Ctx).
+    perform_outside_action(Action, Args, Ctx).
 
 
 init([]) ->
-    lager:info("Starting document registry...", []),
+    lager:info("Registry process started.", []),
     process_flag(trap_exit, true),
     Factories = load_factories(),
     _ = ets:new(?WATCHER_KEY_TO_PID, [named_table, public, bag, {keypos, 1}]),
@@ -235,16 +235,17 @@ init([]) ->
     {ok, #?St{factories = Factories}}.
 
 
-handle_call({find_document, DocKey}, _From, State) ->
-    case lookup_or_create(DocKey, State) of
-        {ok, DocPid, NewState} -> {reply, {ok, DocPid}, NewState};
-        {error, Reason, NewState} -> {reply, {error, Reason}, NewState}
-    end;
+handle_call({find_document, DocKey}, From, State) ->
+    Cont = fun(Result) -> gen_server:reply(From, Result) end,
+    {noreply, lookup_or_create(DocKey, Cont, State)};
 
 handle_call(Request, {From, _Ref}, State) ->
     lager:error("Unexpected call from ~p: ~p", [From, Request]),
     {stop, {unexpected_call, Request, From}, {error, unexpected_call}, State}.
 
+
+handle_cast({perform, Action, Args, Ctx}, State) ->
+    {noreply, perform_inside_action(Action, Args, Ctx, State)};
 
 handle_cast({link_document, Pid}, State) ->
     catch link(Pid),
@@ -260,7 +261,7 @@ handle_cast(Request, State) ->
 
 
 handle_info({'EXIT', Pid, _Reason}, State) ->
-    lager:debug("Document ~p died, cleaning the registry...", [Pid]),
+    lager:debug("Registry's document ~p died, cleaning up.", [Pid]),
     unregister_interests_impl(Pid),
     unregister_document_impl(Pid, dead),
     {noreply, State};
@@ -271,7 +272,7 @@ handle_info(Info, State) ->
 
 
 terminate(Reason, _State) ->
-    lager:info("Terminating document registry: ~p", [Reason]),
+    lager:info("Registry process terminated: ~p", [Reason]),
     ok.
 
 
@@ -286,22 +287,29 @@ load_factories() ->
     erod_maps:from_items([{T, {M, O}} || {T, M, O} <- FactorySpecs]).
 
 
-lookup_or_create(DocKey, State) ->
+lookup_or_create(DocKey, Cont, State) ->
     try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
-        DocPid -> {ok, DocPid, State}
+        DocPid -> Cont({ok, DocPid}), State
     catch
-        error:badarg -> create_document(DocKey, State)
+        error:badarg -> create_document(DocKey, Cont, State)
     end.
 
 
-create_document({Type, _} = DocKey, #?St{factories = Factories} = State) ->
+create_document({Type, _} = DocKey, Cont, State) ->
+    #?St{factories = Factories} = State,
     case erod_maps:lookup(Type, Factories) of
-        none -> {error, document_not_found, State};
-        {value, {Module, Options}} ->
-            case Module:start_document(DocKey, Options) of
-                {ok, DocPid} -> {ok, DocPid, State};
-                {error, Reason} -> {error, Reason, State}
-            end
+        none -> Cont({error, document_not_found}), State;
+        {value, {Mod, Opts}} ->
+            % The documents should be hable to query other documents in init.
+            _ = spawn(fun() -> spawn_document(DocKey, Cont , Mod, Opts) end),
+            State
+    end.
+
+%% Run in its own process
+spawn_document(DocKey, Cont, Mod, Opts) ->
+    case Mod:start_document(DocKey, Opts) of
+        {ok, DocPid} -> Cont({ok, DocPid});
+        {error, Reason} -> Cont({error, Reason})
     end.
 
 
@@ -367,18 +375,34 @@ notify_state_impl([WatcherPid |Watchers], DocKey, State) ->
     notify_state_impl(Watchers, DocKey, State).
 
 
-perform_action(get_content, _Args, Ctx) ->
-    erod_context:failed(not_implemented, Ctx),
-    ok;
+%% Running from inside the registry process
+perform_inside_action(Action, [DocKey |_] = Args, Ctx, State) ->
+   Cont = fun(R) -> continue_inside_action(R, Action, Args, Ctx) end,
+   lookup_or_create(DocKey, Cont, State).
 
-perform_action(get_children, _Args, Ctx) ->
-    erod_context:failed(not_implemented, Ctx),
-    ok;
 
-perform_action(Action, Args, Ctx) ->
-    erod_context:error("Registry do not know how to perform action ~p with "
+%% Running from inside the calling process or a specially spawned process
+%% if case the document had to be created.
+continue_inside_action({ok, DocPid}, Action, Args, Ctx) ->
+    erod_document_process:perform(DocPid, Action, Args, Ctx);
+
+continue_inside_action({error, Reason}, Action, [DocKey |_], Ctx) ->
+    erod_context:warning("Registry could not find document ~p to perform ~p.",
+                         [DocKey, Action], Ctx),
+    erod_context:failed(Reason, Ctx).
+
+
+%% Running from inside the calling process.
+perform_outside_action(Action, [DocKey |_] = Args, Ctx)
+  when Action =:= get_content; Action =:= get_children ->
+    try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
+        DocPid -> erod_document_process:perform(DocPid, Action, Args, Ctx)
+    catch error:badarg ->
+        gen_server:cast(?PROCESS, {perform, Action, Args, Ctx})
+    end;
+
+perform_outside_action(Action, Args, Ctx) ->
+    erod_context:error("Registry does't know how to perform action ~p with "
                        "arguments ~p.", [Action, Args], Ctx),
     erod_context:failed(unknown_action, Ctx),
     ok.
-
-

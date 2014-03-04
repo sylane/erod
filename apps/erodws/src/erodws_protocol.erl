@@ -180,26 +180,26 @@ handle_error(#?Msg{type = Type, cls = Cls}, Reason, Ctx, Proto) ->
 
 handle_message(request, get_content, _, Data, Ctx, Proto) ->
     #erodws_proto_get_content_request{key = K, ver = V, subscribe = S} = Data,
-    erod_actions:perform(get_content, {K, V, S}, Ctx),
+    erod_actions:perform(get_content, [K, V, S], Ctx),
     Proto;
 
 handle_message(request, get_children, _, Data, Ctx, Proto) ->
     #erodws_proto_get_children_request
      {key = K, ver = V, view = W, page = P, subscribe = S} = Data,
-    erod_actions:perform(get_children, {K, V, W, P, S}, Ctx),
+    erod_actions:perform(get_children, [K, V, W, P, S], Ctx),
     Proto;
 
 handle_message(request, login, _, Data, Ctx, Proto) ->
     {ok, Ident, Cred, NewProto} = decode_login_credential(term, Data, Proto),
     Proxy = erodws_proxy:new(self()),
-    Actions = [{login, {Ident, Cred}}, {bind, Proxy}],
+    Actions = [{login, [Ident, Cred]}, {bind, [Proxy]}],
     erod_actions:perform(Actions, Ctx),
     NewProto;
 
 handle_message(request, reconnect, _, Data, Ctx, Proto) ->
     {ok, Ident, Token, NewProto} = decode_restore_credential(term, Data, Proto),
     Proxy = erodws_proxy:new(self()),
-    Actions = [{restore, {Ident, Token}}, {bind, Proxy}],
+    Actions = [{restore, [Ident, Token]}, {bind, [Proxy]}],
     erod_actions:perform(Actions, Ctx),
     NewProto;
 

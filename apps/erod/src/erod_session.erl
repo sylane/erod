@@ -150,7 +150,7 @@ handle_info(Info, StateName, #?St{proxy = undefined} = State) ->
     continue(StateName, State);
 
 handle_info(Info, StateName, #?St{proxy = Proxy} = State) ->
-    case erod_proxy:handle_info(Info, Proxy) of
+    case erod_proxy:handle_message(Info, Proxy) of
         ignored ->
             lager:warning("Unexpected message in state ~p: ~p",
                           [StateName, Info]),
@@ -266,7 +266,7 @@ enter(bound, State) ->
 %%% Actions
 %%% --------------------------------------------------------------------------
 
-perform_action(StateName, restore, _Ident, Ctx, State) ->
+perform_action(StateName, restore, _Args, Ctx, State) ->
     %TODO: Support identity check
     #?St{sess_id = SID, user_id = UID, user = User, policy = Pol} = State,
     NewCtx = erod_context:'_attach'(UID, User, SID, self(), Pol, Ctx),
@@ -274,7 +274,7 @@ perform_action(StateName, restore, _Ident, Ctx, State) ->
     erod_context:done(NewCtx),
     continue(StateName, State);
 
-perform_action(unbound, bind, Proxy,
+perform_action(unbound, bind, [Proxy |_],
                #?Ctx{user_id = UID, sess_id = SID} = Ctx,
                #?St{user_id = UID, sess_id = SID} = State) ->
     case erod_proxy:accept(Ctx, Proxy) of
@@ -289,12 +289,12 @@ perform_action(unbound, bind, Proxy,
             next(unbound, bound, State#?St{proxy = NewProxy})
     end;
 
-perform_action(unbound, bind, _Proxy, Ctx, #?St{sess_id = SID} = State) ->
+perform_action(unbound, bind, _Args, Ctx, #?St{sess_id = SID} = State) ->
     erod_context:error("Cannot bind session ~p if not logged in.", [SID], Ctx),
     erod_context:failed(not_authenticated, Ctx),
     continue(unbound, State);
 
-perform_action(bound, bind, _Proxy,
+perform_action(bound, bind, _Args,
                #?Ctx{user_id = UID, sess_id = SID} = Ctx,
                #?St{user_id = UID, sess_id = SID} = State) ->
     %TODO: Mayeb we want to close the old proxy and bind the new one...
@@ -302,13 +302,13 @@ perform_action(bound, bind, _Proxy,
     erod_context:failed(already_bound, Ctx),
     continue(bound, State);
 
-perform_action(bound, bind, _Proxy, Ctx, #?St{sess_id = SID} = State) ->
+perform_action(bound, bind, _Args, Ctx, #?St{sess_id = SID} = State) ->
     erod_context:error("Cannot bind session ~p if not logged in.", [SID], Ctx),
     erod_context:failed(not_authenticated, Ctx),
     continue(bound, State);
 
 perform_action(StateName, Action, Args, Ctx, State) ->
-    erod_context:error("Session in state ~p do not know how to perform "
+    erod_context:error("Session in state ~p doesn't know how to perform "
                        "action ~p with arguments ~p.",
                        [StateName, Action, Args], Ctx),
     erod_context:failed(unknown_action, Ctx),

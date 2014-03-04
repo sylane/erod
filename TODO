@@ -1,7 +1,7 @@
 FIXME:
   * A connection without session will never die by itself.
-! * Deadlock when creating a document that request other document content.
-  * Make reconnecting to an already bound session not close the connection. 
+  * Make reconnecting to an already bound session not close the connection.
+  * Remove the need of a process crash to get user not found feedback.
 
 TODO:
   * Implement erod_indices:take_smallest_keys/4.
@@ -9,3 +9,5 @@ TODO:
   * Implement erod_maps:trim_smallest/2.
   * Add version match parameter to get_content and get_children (caching).
   * Do some sort of patch history cleanup (use trim_smallest).
+  * Implement erod_shelf that contains multiple documents.
+  * Make the erod_user process a shelf for user-specific documents.

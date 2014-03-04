@@ -119,7 +119,7 @@ del_session(SessId, #?St{sessions = List} = State) when is_integer(SessId) ->
     end.
 
 
-%%%TODO: Enable if needed.
+%%%TODO: Enable if needed or remove.
 %% has_session(Pid, #?St{sessions = List}) when is_pid(Pid) ->
 %%     case lists:keysearch(Pid, 2, List) of
 %%         {value, Value} -> {true, Value};
@@ -137,19 +137,17 @@ add_session(SessId, Pid, #?St{sessions = List} = State) ->
     State#?St{sessions = [{SessId, Pid} |List]}.
 
 
-
-perform_action(login, Credential, Ctx, State) ->
+perform_action(login, [_, Credential |_], Ctx, State) ->
     perform_login(Credential, Ctx, State);
 
 perform_action(logout, _, Ctx, State) ->
     perform_logout(Ctx, State);
 
 perform_action(Action, Args, Ctx, State) ->
-    erod_context:error("User do not know how to perform action ~p with "
+    erod_context:error("User doesn't know how to perform action ~p with "
                        "arguments ~p.", [Action, Args], Ctx),
     erod_context:failed(unknown_action, Ctx),
     State.
-
 
 
 perform_login(Cred, Ctx, State) ->

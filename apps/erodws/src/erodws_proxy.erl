@@ -6,7 +6,7 @@
 
 -export([init/1,
          accept/3,
-         handle_info/3,
+         handle_message/3,
          notify/5]).
 
 -define(St, ?MODULE).
@@ -29,10 +29,10 @@ accept(_Ctx, _Proxy, #?St{conn = Conn} = State) ->
     end.
 
 
-handle_info({'EXIT', Conn, Reason}, _Proxy, #?St{conn = Conn} = State) ->
+handle_message({'EXIT', Conn, Reason}, _Proxy, #?St{conn = Conn} = State) ->
     {dead, Reason, State};
 
-handle_info(_, _Proxy, _State) -> ignored.
+handle_message(_, _Proxy, _State) -> ignored.
 
 
 notify(Name, Fmt, Data, _Proxy, #?St{conn = Conn} = State) ->

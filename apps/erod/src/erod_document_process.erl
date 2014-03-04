@@ -9,6 +9,9 @@
          notify_change/3,
          notify_state/3]).
 
+-export([perform/4]).
+
+
 -define(DEFAULT_TIMEOUT, 5000).
 
 
@@ -41,6 +44,11 @@ notify_change(_WatcherPid, _DocKey, _Patch) ->
 
 
 notify_state(_WatcherPid, _DocKey, _StateName) ->
+    ok.
+
+
+perform(DocPid, Action, Args, Ctx) ->
+    DocPid ! {'$doc_perform', Action, Args, Ctx},
     ok.
 
 
