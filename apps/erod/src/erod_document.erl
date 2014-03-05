@@ -27,8 +27,9 @@
 
 
 -callback init(DocKey, Options)
-    -> {ok, Content, Children, Views, DocState}
-    when DocKey :: erod:key(), Options :: list(),
+    -> {error, Reason}
+     | {ok, Content, Children, Views, DocState}
+    when DocKey :: erod:key(), Options :: list(), Reason :: term(),
          Content :: term(), Children :: list(),
          Views :: erod:view_specs(), DocState :: term().
 
@@ -44,8 +45,10 @@
 -spec new(DocKey :: erod:key(), Module :: module(), Options :: list()) ->
           erod:document().
 
+
 new(DocKey, Module, Options) ->
     case Module:init(DocKey, Options) of
+        {error, _Reason} = Error -> Error;
         {ok, Content, Children, ViewSpecs, State} ->
             ChildrenMap = erod_maps:from_items(Children),
             Views = create_views(ViewSpecs, Children, ChildrenMap),
@@ -70,11 +73,11 @@ get_content(FromVer, Doc) ->
         unchanged -> unchanged;
         none ->
             Ver = erod_document_verlog:version(VerLog),
-            #erod_content{key = DocKey, ver = Ver,
-                          type = entity, data = Content};
+            {ok, #erod_content{key = DocKey, ver = Ver,
+                               type = entity, data = Content}};
         {patch, Ver, Patch} ->
-            #erod_content{key = DocKey, ver = Ver,
-                          type = patch, data = Patch}
+            {ok, #erod_content{key = DocKey, ver = Ver,
+                               type = patch, data = Patch}}
     end.
 
 
@@ -89,9 +92,9 @@ get_children(ViewId, PageId, FromVer, Doc) ->
                 unchanged -> unchanged;
                 {error, _Reason} = Error -> Error;
                 {Type, Ver, Size, Total, Data} ->
-                    #erod_page{type = Type, ver = Ver,
-                               view = ViewId, page = PageId,
-                               size = Size, total = Total, data = Data}
+                    {ok, #erod_page{type = Type, ver = Ver,
+                                    view = ViewId, page = PageId,
+                                    size = Size, total = Total, data = Data}}
             end
     end.
 
@@ -157,16 +160,25 @@ reply({To, Tag}, Reply) ->
 
 
 perform_action(get_content, [_, Ver, Subs |_], Ctx, Doc) ->
-    erod_context:done(get_content(Ver, Doc), Ctx),
-    perform_subscription(Subs, Ctx, Doc);
+    case get_content(Ver, Doc) of
+        unchanged ->
+            erod_context:done(unchanged, Ctx),
+            perform_subscription(Subs, Ctx, Doc);
+        {ok, Content} ->
+            erod_context:done(Content, Ctx),
+            perform_subscription(Subs, Ctx, Doc)
+    end;
 
 perform_action(get_children, [_, Ver, ViewId, PageId, Subs |_], Ctx, Doc) ->
     case get_children(ViewId, PageId, Ver, Doc) of
         {error, Reason} ->
             erod_context:failed(Reason, Ctx),
             Doc;
-        Result ->
-            erod_context:done(Result, Ctx),
+        unchanged ->
+            erod_context:done(unchanged, Ctx),
+            perform_subscription(Subs, Ctx, Doc);
+        {ok, Page} ->
+            erod_context:done(Page, Ctx),
             perform_subscription(Subs, Ctx, Doc)
     end;
 

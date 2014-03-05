@@ -19,9 +19,9 @@
 
 init(Username, []) ->
     case erdom_storage:get_user_by_username(Username) of
-        {error, not_found} -> {stop, unknown_user};
-        {ok, UserInfo} ->
-            #erdom_storage_user{id = I, username = U, password = P} = UserInfo,
+        {error, user_not_found} -> {stop, unknown_user};
+        {ok, UserData} ->
+            #erdom_storage_user{id = I, username = U, password = P} = UserData,
             {ok, I, #?St{id = I, user = U, pass = P}}
     end.
 

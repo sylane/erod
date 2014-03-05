@@ -39,6 +39,12 @@ format_log_id(LogId, #?St{peer = Peer}) ->
     <<LogId/binary, ",", PeerBin/binary>>.
 
 
+done(get_content, Result, Ctx, #?St{cls = get_content} = St) ->
+    send_result_reply(get_content, Result, Ctx, St);
+
+done(get_children, Result, Ctx, #?St{cls = get_children} = St) ->
+    send_result_reply(get_children, Result, Ctx, St);
+
 done(login, Result, Ctx, #?St{cls = login} = St) ->
     send_result_reply(login, Result, Ctx, St);
 
@@ -53,12 +59,6 @@ done(bind, _, _, #?St{cls = reconnect} = St) ->
 
 done(logout, _, Ctx, #?St{cls = logout} = St) ->
     send_result_reply(logout, undefined, Ctx, St);
-
-done(get_content, Result, Ctx, #?St{cls = get_content} = St) ->
-    send_result_reply(get_content, Result, Ctx, St);
-
-done(get_children, Result, Ctx, #?St{cls = get_children} = St) ->
-    send_result_reply(get_children, Result, Ctx, St);
 
 done(Action, Result, Ctx, #?St{type = Type, cls = Cls} = St) ->
     erod_context:error("Websocket unexpected protocol action ~p "

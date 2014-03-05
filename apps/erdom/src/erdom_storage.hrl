@@ -1,13 +1,9 @@
 -ifndef(ERDOM_STORAGE_INCLUDED).
 -define(ERDOM_STORAGE_INCLUDED, true).
 
--record(erdom_storage_index,
-        {group_ids}).
-
 -record(erdom_storage_group,
         {id,
-         name,
-         user_ids}).
+         name}).
 
 -record(erdom_storage_user,
         {id,

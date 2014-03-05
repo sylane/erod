@@ -6,9 +6,10 @@
 
 -export([start_link/0]).
 
--export([get_index/0,
-         get_group/1,
-         get_user/1,
+-export([get_index_children/0,
+         get_group_content/1,
+         get_group_children/1,
+         get_user_content/1,
          get_user_by_username/1,
          does_group_exist/1,
          does_user_exist/1]).
@@ -32,16 +33,19 @@ start_link() ->
     gen_server:start_link({local, ?PROCESS}, ?MODULE, [], []).
 
 
-get_index() ->
-    gen_server:call(?PROCESS, get_index).
+get_index_children() ->
+    gen_server:call(?PROCESS, get_index_children).
 
 
-get_group(GroupId) ->
-    gen_server:call(?PROCESS, {get_group, GroupId}).
+get_group_content(GroupId) ->
+    gen_server:call(?PROCESS, {get_group_content, GroupId}).
+
+get_group_children(GroupId) ->
+    gen_server:call(?PROCESS, {get_group_children, GroupId}).
 
 
-get_user(UserId) ->
-    gen_server:call(?PROCESS, {get_user, UserId}).
+get_user_content(UserId) ->
+    gen_server:call(?PROCESS, {get_user_content, UserId}).
 
 
 get_user_by_username(Username) ->
@@ -70,11 +74,11 @@ init([]) ->
     {ok, #?St{users = UserMap, groups = GroupMap}}.
 
 
-handle_call({get_user, UserId}, _From, State) ->
+handle_call({get_user_content, UserId}, _From, State) ->
     #?St{users = Users} = State,
     case gb_trees:lookup(UserId, Users) of
         {value, User} -> {reply, {ok, User}, State};
-        none -> {reply, {error, not_found}, State}
+        none -> {reply, {error, user_not_found}, State}
     end;
 
 handle_call({get_user_by_username, Username}, _From, State) ->
@@ -83,20 +87,26 @@ handle_call({get_user_by_username, Username}, _From, State) ->
     List = gb_trees:to_list(Users),
     case [U || {_, U} <- List, U#erdom_storage_user.username =:= Username] of
         [User] -> {reply, {ok, User}, State};
-        [] -> {reply, {error, not_found}, State}
+        [] -> {reply, {error, user_not_found}, State}
     end;
 
-handle_call({get_group, GroupId}, _From, State) ->
+handle_call({get_group_content, GroupId}, _From, State) ->
     #?St{groups = Groups} = State,
     case gb_trees:lookup(GroupId, Groups) of
-        {value, Group} -> {reply, {ok, Group}, State};
-        none -> {reply, {error, not_found}, State}
+        {value, {Group, _}} -> {reply, {ok, Group}, State};
+        none -> {reply, {error, group_not_found}, State}
     end;
 
-handle_call(get_index, _From, State) ->
+handle_call({get_group_children, GroupId}, _From, State) ->
     #?St{groups = Groups} = State,
-    Index = #erdom_storage_index{group_ids = gb_trees:keys(Groups)},
-    {reply, {ok, Index}, State};
+    case gb_trees:lookup(GroupId, Groups) of
+        {value, {_, UserIds}} -> {reply, {ok, UserIds}, State};
+        none -> {reply, {error, group_not_found}, State}
+    end;
+
+handle_call(get_index_children, _From, State) ->
+    #?St{groups = Groups} = State,
+    {reply, {ok, gb_trees:keys(Groups)}, State};
 
 handle_call({does_group_exist, GroupId}, _From, State) ->
     {reply, gb_trees:is_defined(GroupId, State#?St.groups), State};
@@ -156,9 +166,8 @@ create_groups(Index, GroupMap, Count) ->
             Name = iolist_to_binary(io_lib:format("Group ~3w", [Number])),
             Size = random:uniform(400) + 200,
             UserIds = pick_user_ids(Size, Index),
-            Group = #erdom_storage_group{id = GroupId, name = Name,
-                                         user_ids = UserIds},
-            NewGroupMap = gb_trees:insert(GroupId, Group, GroupMap),
+            Group = #erdom_storage_group{id = GroupId, name = Name},
+            NewGroupMap = gb_trees:insert(GroupId, {Group, UserIds}, GroupMap),
             create_groups(Index, NewGroupMap, Count - 1)
     end.
 

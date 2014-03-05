@@ -7,7 +7,10 @@
 -include("erdom_storage.hrl").
 
 
--export([start_document/2,
+-export([init_factory/1,
+         knows_content/2,
+         get_content/2,
+         start_document/2,
          create_document/2]).
 
 -export([init/2,
@@ -16,16 +19,33 @@
 
 -define(St, ?MODULE).
 -record(?St, {}).
+-record(fac, {}).
 
 -define(GroupContent, erdom_document_group_content).
 -define(Content, erdom_document_index_content).
 -define(Child, erdom_document_index_child).
 
 
-start_document({index, 0} = DocKey, Options) ->
-    erod:start_document(DocKey, ?MODULE, Options);
+init_factory([]) ->
+    {ok, #fac{}}.
 
-start_document(_DocKey, []) ->
+
+knows_content({index, _IndexId}, _Fac) -> true;
+
+knows_content(_DocKey, _Fac) -> false.
+
+
+get_content({index, 0}, _Fac) ->
+    {ok, #?Content{}};
+
+get_content({index, _IndeId}, _Fac) ->
+    {error, document_not_found}.
+
+
+start_document({index, 0} = DocKey, _Fac) ->
+    erod:start_document(DocKey, ?MODULE, []);
+
+start_document(_DocKey, _Fac) ->
     {error, document_not_found}.
 
 
@@ -34,10 +54,13 @@ create_document(DocKey, Options) ->
 
 
 init({index, 0}, []) ->
-    {Content, Children} = load_index(),
     Views = [{asc, 50, fun compare_asc/2},
              {desc, 50, fun compare_desc/2}],
-    {ok, Content, Children, Views, #?St{}}.
+    Content = #?Content{},
+    case get_children() of
+        {error, _Reason} = Error -> Error;
+        {ok, Children} -> {ok, Content, Children, Views, #?St{}}
+    end.
 
 
 export_child_key(Key) -> {group, Key}.
@@ -52,35 +75,19 @@ compare_asc(#?Child{name = A}, #?Child{name = B}) -> A =< B.
 compare_desc(#?Child{name = A}, #?Child{name = B}) -> A > B.
 
 
-load_index() ->
-    {ok, IndexData} = erdom_storage:get_index(),
-    Content = index_data_to_content(IndexData),
-    Children = [{GroupId, get_child_and_watch(GroupId)}
-                || GroupId <- IndexData#erdom_storage_index.group_ids],
-    {Content, Children}.
-
-
-get_child_and_watch(GroupId) ->
-    case erod_registry:find_content({group, GroupId}, undefined, self()) of
-        {ok, #erod_content{type = entity, data = Content}} ->
-            group_content_to_child(Content);
-        {error, document_not_found} ->
-            {ok, Data} = erdom_storage:get_group(GroupId),
-            group_data_to_child(Data)
+get_children() ->
+    case erdom_storage:get_index_children() of
+        {error, _Reason} = Error -> Error;
+        {ok, GroupIds} ->
+            {ok, [{GID, C} || GID <- GroupIds,
+                  begin {F, C} = get_child(GID), F end]}
     end.
 
 
-index_data_to_content(ID) ->
-    #erdom_storage_index{} = ID,
-    #?Content{}.
-
-
-group_content_to_child(GC) ->
-    #?GroupContent{name = N} = GC,
-    #?Child{name = N}.
-
-
-group_data_to_child(GD) ->
-    #erdom_storage_group{name = N} = GD,
-    #?Child{name = N}.
-
+get_child(GroupId) ->
+    case erod_registry:get_content({group, GroupId}, undefined, self()) of
+        {ok, #erod_content{type = entity, data = GroupContent}} ->
+            #?GroupContent{name = Name} = GroupContent,
+            {true, #?Child{name = Name}};
+        _ -> {false, undefined}
+    end.

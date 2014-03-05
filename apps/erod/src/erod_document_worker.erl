@@ -16,13 +16,13 @@
 -record(?St, {doc}).
 
 
-start_link(DocKey, Factory, Options) ->
-    gen_server:start_link(?MODULE, [DocKey, Factory, Options], []).
+start_link(DocKey, FacMod, FacOpts) ->
+    gen_server:start_link(?MODULE, [DocKey, FacMod, FacOpts], []).
 
 
-init([DocKey, Factory, Options]) ->
+init([DocKey, FacMod, FacOpts]) ->
     lager:info("Worker process for document ~p started.", [DocKey]),
-    case Factory:create_document(DocKey, Options) of
+    case erod_factory:create_document(DocKey, FacMod, FacOpts) of
         {error, Reason} -> {stop, Reason};
         {ok, Doc} -> {ok, #?St{doc = Doc}}
     end.

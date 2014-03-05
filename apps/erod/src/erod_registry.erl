@@ -11,8 +11,6 @@
          get_watchers/1,
          add_watcher/2,
          del_watcher/1, del_watcher/2,
-         find_content/1, find_content/2, find_content/3,
-         find_children/3, find_children/4, find_children/5,
          get_content/1, get_content/2, get_content/3,
          get_children/3, get_children/4, get_children/5,
          notify_change/2]).
@@ -70,13 +68,15 @@ get_document(DocKey) ->
     try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
         DocPid -> {ok, DocPid}
     catch error:badarg ->
-        gen_server:call(?PROCESS, {find_document, DocKey})
+        gen_server:call(?PROCESS, {get_document, DocKey})
     end.
 
 
 get_watchers(DocKey) ->
     ets:lookup_element(?WATCHER_KEY_TO_PID, DocKey, 2).
 
+
+add_watcher(_DocKey, undefined) -> ok;
 
 add_watcher(DocKey, WatcherPid) when is_pid(WatcherPid) ->
     gen_server:cast(?PROCESS, {link_document, WatcherPid}),
@@ -89,73 +89,21 @@ add_watcher(DocKey, WatcherPid) when is_pid(WatcherPid) ->
     catch error:badarg -> ok end.
 
 
+del_watcher(undefined) -> ok;
+
 del_watcher(WatcherPid) when is_pid(WatcherPid) ->
     % No registration must be done for this watcher in parallele
     gen_server:cast(?PROCESS, {unlink_document, WatcherPid}),
     unregister_interests_impl(WatcherPid).
 
 
+del_watcher(_DocKeys, undefined) -> ok;
+
 del_watcher(DocKeys, WatcherPid) when is_list(DocKeys) ->
     unregister_interests_impl(DocKeys, WatcherPid);
 
 del_watcher(DocKey, WatcherPid) ->
     unregister_interest_impl(DocKey, WatcherPid).
-
-
-find_content(DocKey) ->
-    find_content(DocKey, undefined, undefined).
-
-
-find_content(DocKey, FromVer) ->
-    find_content(DocKey, FromVer, undefined).
-
-
-find_content(DocKey, FromVer, undefined) ->
-    case find_document(DocKey) of
-        {error, _Reason} = Error -> Error;
-        {ok, DocPid} ->
-            erod_document_process:get_content(DocPid, DocKey, FromVer)
-    end;
-
-find_content(DocKey, FromVer, WatcherPid) when is_pid(WatcherPid) ->
-    Item = {DocKey, WatcherPid},
-    ets:insert(?WATCHER_KEY_TO_PID, Item),
-    ets:insert(?WATCHER_PID_TO_KEY, Item),
-    case find_document(DocKey) of
-        {error, _Reason} = Error -> Error;
-        {ok, DocPid} ->
-            erod_document_process:get_content(DocPid, DocKey,
-                                              FromVer, WatcherPid)
-    end.
-
-
-find_children(DocKey, ViewId, PageId) ->
-    get_children(DocKey, ViewId, PageId, undefined, undefined).
-
-
-find_children(DocKey, ViewId, PageId, FromVer) ->
-    get_children(DocKey, ViewId, PageId, FromVer, undefined).
-
-
-find_children(DocKey, ViewId, PageId, FromVer, undefined) ->
-    case find_document(DocKey) of
-        {error, _Reason} = Error -> Error;
-        {ok, DocPid} ->
-            erod_document_process:get_children(DocPid, DocKey, ViewId,
-                                               PageId, FromVer)
-    end;
-
-find_children(DocKey, ViewId, PageId, FromVer, WatcherPid)
-  when is_pid(WatcherPid) ->
-    Item = {DocKey, WatcherPid},
-    ets:insert(?WATCHER_KEY_TO_PID, Item),
-    ets:insert(?WATCHER_PID_TO_KEY, Item),
-    case find_document(DocKey) of
-        {error, _Reason} = Error -> Error;
-        {ok, DocPid} ->
-            erod_document_process:get_children(DocPid, DocKey, ViewId,
-                                               PageId, FromVer, WatcherPid)
-    end.
 
 
 get_content(DocKey) ->
@@ -166,22 +114,18 @@ get_content(DocKey, FromVer) ->
     get_content(DocKey, FromVer, undefined).
 
 
-get_content(DocKey, FromVer, undefined) ->
-    case get_document(DocKey) of
-        {error, _Reason} = Error -> Error;
-        {ok, DocPid} ->
-            erod_document_process:get_content(DocPid, DocKey, FromVer)
-    end;
-
-get_content(DocKey, FromVer, WatcherPid) when is_pid(WatcherPid) ->
-    Item = {DocKey, WatcherPid},
-    ets:insert(?WATCHER_KEY_TO_PID, Item),
-    ets:insert(?WATCHER_PID_TO_KEY, Item),
-    case get_document(DocKey) of
-        {error, _Reason} = Error -> Error;
-        {ok, DocPid} ->
-            erod_document_process:get_content(DocPid, DocKey,
-                                              FromVer, WatcherPid)
+get_content(DocKey, FromVer, Watcher) ->
+    add_watcher(DocKey, Watcher),
+    try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
+        Pid -> erod_document_process:get_content(Pid, DocKey, FromVer, Watcher)
+    catch error:badarg ->
+        case gen_server:call(?PROCESS, {get_document_for_content, DocKey}) of
+            {error, _Reason} = Error -> Error;
+            {ask_factory, Factory} ->
+                erod_factory:get_content(DocKey, Factory);
+            {ok, Pid} ->
+                erod_document_process:get_content(Pid, DocKey, FromVer, Watcher)
+        end
     end.
 
 
@@ -193,24 +137,13 @@ get_children(DocKey, ViewId, PageId, FromVer) ->
     get_children(DocKey, ViewId, PageId, FromVer, undefined).
 
 
-get_children(DocKey, ViewId, PageId, FromVer, undefined) ->
+get_children(DocKey, ViewId, PageId, FromVer, Watcher)->
+    add_watcher(DocKey, Watcher),
     case get_document(DocKey) of
         {error, _Reason} = Error -> Error;
         {ok, DocPid} ->
             erod_document_process:get_children(DocPid, DocKey, ViewId,
-                                               PageId, FromVer)
-    end;
-
-get_children(DocKey, ViewId, PageId, FromVer, WatcherPid)
-  when is_pid(WatcherPid) ->
-    Item = {DocKey, WatcherPid},
-    ets:insert(?WATCHER_KEY_TO_PID, Item),
-    ets:insert(?WATCHER_PID_TO_KEY, Item),
-    case get_document(DocKey) of
-        {error, _Reason} = Error -> Error;
-        {ok, DocPid} ->
-            erod_document_process:get_children(DocPid, DocKey, ViewId,
-                                               PageId, FromVer, WatcherPid)
+                                               PageId, FromVer, Watcher)
     end.
 
 
@@ -235,7 +168,11 @@ init([]) ->
     {ok, #?St{factories = Factories}}.
 
 
-handle_call({find_document, DocKey}, From, State) ->
+handle_call({get_document_for_content, DocKey}, From, State) ->
+    Cont = fun(Result) -> gen_server:reply(From, Result) end,
+    {noreply, get_document_for_content(DocKey, Cont, State)};
+
+handle_call({get_document, DocKey}, From, State) ->
     Cont = fun(Result) -> gen_server:reply(From, Result) end,
     {noreply, lookup_or_create(DocKey, Cont, State)};
 
@@ -284,7 +221,15 @@ code_change(_OldVsn, State, _Extra) ->
 load_factories() ->
     {ok, AppName} = application:get_application(),
     FactorySpecs = application:get_env(AppName, document_factories, []),
-    erod_maps:from_items([{T, {M, O}} || {T, M, O} <- FactorySpecs]).
+    erod_maps:from_items([{T, F} || {T, M, O} <- FactorySpecs,
+                          begin {ok, F} = erod_factory:new(M, O), true end]).
+
+
+get_factory({Type, _Id}, #?St{factories = Factories}) ->
+    case erod_maps:lookup(Type, Factories) of
+        {value, Fac} -> Fac;
+        none -> none
+    end.
 
 
 lookup_or_create(DocKey, Cont, State) ->
@@ -295,21 +240,36 @@ lookup_or_create(DocKey, Cont, State) ->
     end.
 
 
-create_document({Type, _} = DocKey, Cont, State) ->
-    #?St{factories = Factories} = State,
-    case erod_maps:lookup(Type, Factories) of
+create_document(DocKey, Cont, State) ->
+    case get_factory(DocKey, State) of
         none -> Cont({error, document_not_found}), State;
-        {value, {Mod, Opts}} ->
+        Factory ->
             % The documents should be hable to query other documents in init.
-            _ = spawn(fun() -> spawn_document(DocKey, Cont , Mod, Opts) end),
+            _ = spawn(fun() -> spawn_document(DocKey, Cont , Factory) end),
             State
     end.
 
 %% Run in its own process
-spawn_document(DocKey, Cont, Mod, Opts) ->
-    case Mod:start_document(DocKey, Opts) of
+spawn_document(DocKey, Cont, Factory) ->
+    case erod_factory:start_document(DocKey, Factory) of
         {ok, DocPid} -> Cont({ok, DocPid});
         {error, Reason} -> Cont({error, Reason})
+    end.
+
+
+get_document_for_content(DocKey, Cont, State) ->
+    try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
+        DocPid -> Cont({ok, DocPid}), State
+    catch
+        error:badarg ->
+            case get_factory(DocKey, State) of
+                none -> create_document(DocKey, Cont, State);
+                Fac ->
+                    case erod_factory:knows_content(DocKey, Fac) of
+                        true -> Cont({ask_factory, Fac}), State;
+                        false -> create_document(DocKey, Cont, State)
+                    end
+            end
     end.
 
 

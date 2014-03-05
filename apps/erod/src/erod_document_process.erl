@@ -19,16 +19,16 @@ get_content(DocPid, DocKey, FromVer) ->
     call(DocPid, DocKey, {get_content, FromVer, undefined}).
 
 
-get_content(DocPid, DocKey, FromVer, WatcherPid) when is_pid(WatcherPid) ->
-    call(DocPid, DocKey, {get_content, FromVer, WatcherPid}).
+get_content(DocPid, DocKey, FromVer, Watcher) ->
+    call(DocPid, DocKey, {get_content, FromVer, Watcher}).
 
 
 get_children(DocPid, DocKey, ViewId, PageId, FromVer) ->
     call(DocPid, DocKey, {get_children, ViewId, PageId, FromVer, undefined}).
 
 
-get_children(DocPid, DocKey, ViewId, PageId, FromVer, WatcherPid) ->
-    call(DocPid, DocKey, {get_children, ViewId, PageId, FromVer, WatcherPid}).
+get_children(DocPid, DocKey, ViewId, PageId, FromVer, Watcher) ->
+    call(DocPid, DocKey, {get_children, ViewId, PageId, FromVer, Watcher}).
 
 
 add_watcher(_DocPid, _DocKey, _WatcherPid) ->
