@@ -1,16 +1,16 @@
 -module(erodlib).
 
--export([maybe_atom/1,
+-export([maybe_atom/2,
          bin2atom/1,
          atom2bin/1,
          peer2bin/1]).
 
 
-maybe_atom(B) when is_binary(B) ->
+maybe_atom(B, Default) when is_binary(B) ->
     try erlang:binary_to_existing_atom(B, utf8) of
         Atom -> Atom
     catch
-        error:badarg -> B
+        error:badarg -> Default
     end.
 
 

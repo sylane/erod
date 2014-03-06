@@ -90,6 +90,10 @@ decode_data(term, request, get_children, Term) ->
     RawData = erodlib_term:get_struct(data, Term),
     erodws_proto_get_children_request:decode(term, RawData);
 
+decode_data(term, request, patch_content, Term) ->
+    RawData = erodlib_term:get_struct(data, Term),
+    erodws_proto_patch_content_request:decode(term, RawData);
+
 decode_data(term, request, login, Term) ->
     erodlib_term:get_struct(data, Term, undefined);
 

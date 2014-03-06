@@ -59,7 +59,7 @@ new(Req, Module, Options) ->
 
 attach_context(Ctx, #?Proto{ctx = undefined} = Proto) ->
     info("Websocket attached.", [], Ctx),
-    Proto#?Proto{ctx = Ctx}.
+    Proto#?Proto{ctx = erod_context:compact(Ctx)}.
 
 
 -spec release_context(Protocol)
@@ -187,6 +187,11 @@ handle_message(request, get_children, _, Data, Ctx, Proto) ->
     #erodws_proto_get_children_request
      {key = K, ver = V, view = W, page = P, subscribe = S} = Data,
     erod_actions:perform(get_children, [K, V, W, P, S], Ctx),
+    Proto;
+
+handle_message(request, patch_content, _, _Data, Ctx, Proto) ->
+    %#erodws_proto_patch_content_request{key = K, ver = V, data = D} = Data,
+    erod_context:failed(not_implemented, Ctx),
     Proto;
 
 handle_message(request, login, _, Data, Ctx, Proto) ->

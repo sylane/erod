@@ -21,10 +21,19 @@
          page :: erod:page_id(),
          subscribe :: boolean()}).
 
+-record(erodws_proto_patch_content_request,
+        {key :: erod:key(),
+         ver :: erod:version(),
+         format :: atom(),
+         patch :: erod:patch()}).
+
 -record(erodws_proto_generic_error,
         {code :: pos_integer(),
          msg :: binary() | undefined,
          debug :: binary() | undefined}).
+
+-record(erodws_proto_generic_version,
+        {ver :: erod:version()}).
 
 
 -type erodws_message() :: #erodws_proto_message{}.
