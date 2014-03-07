@@ -8,6 +8,7 @@
          get_content/2,
          get_children/4,
          patch_content/2,
+         patch_content/3,
          add_child/2,
          patch_child/3]).
 
@@ -99,8 +100,18 @@ get_children(ViewId, PageId, FromVer, Doc) ->
     end.
 
 
-patch_content(_Patch, Doc) ->
-    {ok, Doc}.
+patch_content(_Patch, #?Doc{verlog = VerLog} = Doc) ->
+    {ok, erod_document_verlog:version(VerLog), Doc}.
+
+
+patch_content(undefined, Patch, Doc) ->
+    patch_content(Patch, Doc);
+
+patch_content(RefVer, Patch, #?Doc{verlog = VerLog} = Doc) ->
+    case erod_document_verlog:version(VerLog) =:= RefVer of
+        false -> {error, conflict};
+        true -> patch_content(Patch, Doc)
+    end.
 
 
 add_child(_Child, Doc) ->
@@ -180,6 +191,16 @@ perform_action(get_children, [_, Ver, ViewId, PageId, Subs |_], Ctx, Doc) ->
         {ok, Page} ->
             erod_context:done(Page, Ctx),
             perform_subscription(Subs, Ctx, Doc)
+    end;
+
+perform_action(patch_content, [_, Ver, Patch|_], Ctx, Doc) ->
+    case patch_content(Ver, Patch, Doc) of
+        {error, Reason} ->
+            erod_context:failed(Reason, Ctx),
+            Doc;
+        {ok, NewVer, NewDoc} ->
+            erod_context:done(NewVer, Ctx),
+            NewDoc
     end;
 
 perform_action(Action, Args, Ctx, #?Doc{key = Key} = Doc) ->

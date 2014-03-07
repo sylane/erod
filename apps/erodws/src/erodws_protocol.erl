@@ -10,8 +10,8 @@
          handle_packet/3,
          encode_error_reply/4,
          encode_error_reply/5,
-         encode_result_reply/4,
          encode_result_reply/5,
+         encode_result_reply/6,
          encode_error/4]).
 
 -define(Proto, ?MODULE).
@@ -125,22 +125,26 @@ encode_error_reply(Fmt, Cls, Id, Error, Proto) ->
     {ok, erodws_proto_message:encode_error_reply(Fmt, Cls, Id, Error), Proto}.
 
 
--spec encode_result_reply(Fmt, Msg, Result, Protocol)
+-spec encode_result_reply(Fmt, Msg, Status, Result, Protocol)
     -> {ok, Data, Protocol}
-    when Fmt :: atom(), Msg :: erodws_message(),
+    when Fmt :: atom(), Msg :: erodws_message(), Status :: pos_integer(),
          Result :: term(), Data :: term(), Protocol :: protocol().
 
-encode_result_reply(Fmt, #?Msg{type = request, id = Id, cls = Cls}, Result, Proto) ->
-    {ok, erodws_proto_message:encode_result_reply(Fmt, Cls, Id, Result), Proto}.
+encode_result_reply(Fmt, Msg, Status, Res, Proto) ->
+    #?Msg{type = request, id = Id, cls = Cls} = Msg,
+    Pkt = erodws_proto_message:encode_result_reply(Fmt, Cls, Id, Status, Res),
+    {ok, Pkt, Proto}.
 
 
--spec encode_result_reply(Fmt, Cls, Id, Result, Protocol)
+-spec encode_result_reply(Fmt, Cls, Id, Status, Result, Protocol)
     -> {ok, Data, Protocol}
     when Fmt :: atom(), Cls :: atom(), Id :: erodws_request_id(),
-         Result :: term(), Data :: term(), Protocol :: protocol().
+         Status :: pos_integer(), Result :: term(),
+         Data :: term(), Protocol :: protocol().
 
-encode_result_reply(Fmt, Cls, Id, Result, Proto) ->
-    {ok, erodws_proto_message:encode_result_reply(Fmt, Cls, Id, Result), Proto}.
+encode_result_reply(Fmt, Cls, Id, Status, Res, Proto) ->
+    Pkt = erodws_proto_message:encode_result_reply(Fmt, Cls, Id, Status, Res),
+    {ok, Pkt, Proto}.
 
 
 -spec encode_error(Fmt, Cls, Error, Protocol)
@@ -189,9 +193,9 @@ handle_message(request, get_children, _, Data, Ctx, Proto) ->
     erod_actions:perform(get_children, [K, V, W, P, S], Ctx),
     Proto;
 
-handle_message(request, patch_content, _, _Data, Ctx, Proto) ->
-    %#erodws_proto_patch_content_request{key = K, ver = V, data = D} = Data,
-    erod_context:failed(not_implemented, Ctx),
+handle_message(request, patch_content, _, Data, Ctx, Proto) ->
+    #erodws_proto_patch_content_request{key = K, ver = V, patch = P} = Data,
+    erod_actions:perform(patch_content, [K, V, P], Ctx),
     Proto;
 
 handle_message(request, login, _, Data, Ctx, Proto) ->

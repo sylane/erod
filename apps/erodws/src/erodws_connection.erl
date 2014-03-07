@@ -7,7 +7,7 @@
 -export([notify/4,
          send_error/2,
          send_error_reply/4,
-         send_result_reply/4,
+         send_result_reply/5,
          attach_context/2,
          release_context/1,
          close_connection/2]).
@@ -42,8 +42,8 @@ send_error_reply(Connection, Cls, Id, Error) ->
     ok.
 
 
-send_result_reply(Connection, Cls, Id, Data) ->
-    Connection ! {send_result_reply, Cls, Id, Data},
+send_result_reply(Connection, Cls, Id, Status, Data) ->
+    Connection ! {send_result_reply, Cls, Id, Status, Data},
     ok.
 
 
@@ -105,8 +105,9 @@ websocket_info({send_error_reply, C, I, Err}, Req, #?St{proto = P} = State) ->
     {ok, Data, P2} = erodws_protocol:encode_error_reply(json, C, I, Err, P),
     {reply, {text, Data}, Req, State#?St{proto = P2}};
 
-websocket_info({send_result_reply, C, I, Res}, Req, #?St{proto = P} = State) ->
-    {ok, Data, P2} = erodws_protocol:encode_result_reply(json, C, I, Res, P),
+websocket_info({send_result_reply, C, I, S, Res}, Req, State) ->
+    #?St{proto = P} = State,
+    {ok, Data, P2} = erodws_protocol:encode_result_reply(json, C, I, S, Res, P),
     {reply, {text, Data}, Req, State#?St{proto = P2}};
 
 websocket_info({attach_context, Ctx}, Req, #?St{proto = Proto} = State) ->

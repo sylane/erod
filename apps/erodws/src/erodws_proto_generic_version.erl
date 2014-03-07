@@ -7,9 +7,8 @@
 
 
 decode(term, Term) ->
-    Version = erodlib_term:get_ver(ver, Term, undefined),
-    #?MODULE{ver = Version}.
+    erodlib_term:get_ver(ver, Term, undefined).
 
 
-encode(jsx, #?MODULE{ver = Version}) ->
+encode(jsx, Version) ->
     [{<<"ver">>, erodlib_jsx:ver_value(ver, Version)}].

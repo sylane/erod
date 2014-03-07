@@ -5,7 +5,7 @@
 -export([encode/2]).
 
 
-encode(jsx, unchanged) -> undefined;
+encode(jsx, undefined) -> undefined;
 
 encode(jsx, #erod_content{type = entity} = Content) ->
     #erod_content{key = Key, ver = Ver, data = Data} = Content,

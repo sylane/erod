@@ -7,6 +7,7 @@
         {type :: request | result | error | notify,
          id :: erodws_request_id() | undefiend,
          cls :: atom(),
+         status :: integer() | undefined,
          data :: term()}).
 
 -record(erodws_proto_get_content_request,
@@ -28,12 +29,10 @@
          patch :: erod:patch()}).
 
 -record(erodws_proto_generic_error,
-        {code :: pos_integer(),
+        {status :: pos_integer(),
+         code :: pos_integer(),
          msg :: binary() | undefined,
          debug :: binary() | undefined}).
-
--record(erodws_proto_generic_version,
-        {ver :: erod:version()}).
 
 
 -type erodws_message() :: #erodws_proto_message{}.

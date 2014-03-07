@@ -24,19 +24,14 @@ perform(Action, Args, #?Ctx{actions = undefined} = Ctx) ->
 
 
 
-perform_action(get_content, _, #?Ctx{policy = undefined} = Ctx) ->
-    erod_context:warning("Cannot get_content, not yet authenticated.", [], Ctx),
-    erod_context:failed(not_authenticated, Ctx);
-
 perform_action(get_content, Args, Ctx) ->
-    erod_registry:perform(get_content, Args, Ctx);
-
-perform_action(get_children, _, #?Ctx{policy = undefined} = Ctx) ->
-    erod_context:warning("Cannot get_children, not yet authenticated.", [], Ctx),
-    erod_context:failed(not_authenticated, Ctx);
+    perform_registry_action(get_content, Args, Ctx);
 
 perform_action(get_children, Args, Ctx) ->
-    erod_registry:perform(get_children, Args, Ctx);
+    perform_registry_action(get_children, Args, Ctx);
+
+perform_action(patch_content, Args, Ctx) ->
+    perform_registry_action(patch_content, Args, Ctx);
 
 perform_action(login, [Identity |_] = Args, #?Ctx{sess = undefined} = Ctx) ->
     try
@@ -94,3 +89,12 @@ perform_action(Action, Args, Ctx) ->
     erod_context:error("Cannot perform unknown action ~p with arguments ~p.",
                        [Action, Args], Ctx),
     erod_context:failed(unknown_action, Ctx).
+
+
+perform_registry_action(Action, _, #?Ctx{policy = undefined} = Ctx) ->
+    erod_context:warning("Cannot perform ~w action, "
+                         "not yet authenticated.", [Action], Ctx),
+    erod_context:failed(not_authenticated, Ctx);
+
+perform_registry_action(Action, Args, Ctx) ->
+    erod_registry:perform(Action, Args, Ctx).

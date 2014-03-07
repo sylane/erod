@@ -6,7 +6,7 @@
          encode/2,
          encode_error/3,
          encode_error_reply/4,
-         encode_result_reply/4]).
+         encode_result_reply/5]).
 
 -define(MSG_TYPES, [request, result, error, notify]).
 
@@ -35,8 +35,8 @@ decode(Fmt, _Any) ->
 encode(json, Msg) ->
     erodlib_jsx:encode(json, encode(jsx, Msg));
 
-encode(jsx, #?Msg{type = T, id = I, cls = C, data = D}) ->
-    encode_message(jsx, T, C, I, encode_data(jsx, T, C, D));
+encode(jsx, #?Msg{type = T, id = I, cls = C, status = S, data = D}) ->
+    encode_message(jsx, T, C, I, S, encode_data(jsx, T, C, D));
 
 encode(Fmt, _Any) ->
     error({format_error, {unsupported_format, Fmt}}).
@@ -47,8 +47,9 @@ encode_error(json, Cls, Error) ->
 
 encode_error(Fmt, Cls, Error) ->
     ErrorRec = erodws_errors:map(Cls, Error),
+    Status = ErrorRec#erodws_proto_generic_error.status,
     Data = erodws_proto_generic_error:encode(Fmt, ErrorRec),
-    encode_message(Fmt, error, Cls, undefined, Data).
+    encode_message(Fmt, error, Cls, undefined, Status, Data).
 
 
 encode_error_reply(json, Cls, Id, Error) ->
@@ -56,16 +57,17 @@ encode_error_reply(json, Cls, Id, Error) ->
 
 encode_error_reply(Fmt, Cls, Id, Error) ->
     ErrorRec = erodws_errors:map(Cls, Error),
+    Status = ErrorRec#erodws_proto_generic_error.status,
     Data = erodws_proto_generic_error:encode(Fmt, ErrorRec),
-    encode_message(Fmt, error, Cls, Id, Data).
+    encode_message(Fmt, error, Cls, Id, Status, Data).
 
 
-encode_result_reply(json, Cls, Id, Result) ->
-    erodlib_jsx:encode(json, encode_result_reply(jsx, Cls, Id, Result));
+encode_result_reply(json, Cls, Id, Status, Result) ->
+    erodlib_jsx:encode(json, encode_result_reply(jsx, Cls, Id, Status, Result));
 
-encode_result_reply(Fmt, Cls, Id, Result) ->
+encode_result_reply(Fmt, Cls, Id, Status, Result) ->
     Data = encode_data(Fmt, result, Cls, Result),
-    encode_message(Fmt, result, Cls, Id, Data).
+    encode_message(Fmt, result, Cls, Id, Status, Data).
 
 
 
@@ -113,6 +115,9 @@ encode_data(Fmt, result, get_content, Data) ->
 encode_data(Fmt, result, get_children, Data) ->
     erodws_proto_get_children_result:encode(Fmt, Data);
 
+encode_data(Fmt, result, patch_content, Data) ->
+    erodws_proto_generic_version:encode(Fmt, Data);
+
 encode_data(jsx, result, login, Data) ->
     erodlib_jsx:struct_value(data, Data);
 
@@ -135,43 +140,61 @@ encode_data(_Fmt, _Type, _Cls, _Data) ->
     error(message_class_unknown).
 
 
-encode_message(jsx, T, C, I, undefined) when T =:= request; T =:= result ->
-    [{<<"type">>, erodlib_jsx:atom_value(type, T)},
-     {<<"id">>, erodlib_jsx:binary_value(id, I)},
-     {<<"cls">>, erodlib_jsx:atom_value(cls, C)}];
+%%TODO: Enable when needed or delete.
+%% encode_message(jsx, request, C, I, undefined, undefined) ->
+%%     [{<<"type">>, <<"request">>},
+%%      {<<"id">>, erodlib_jsx:binary_value(id, I)},
+%%      {<<"cls">>, erodlib_jsx:atom_value(cls, C)}];
+%%
+%% encode_message(jsx, request, C, I, undefined, D) ->
+%%     [{<<"type">>, <<"request">>},
+%%      {<<"id">>, erodlib_jsx:binary_value(id, I)},
+%%      {<<"cls">>, erodlib_jsx:atom_value(cls, C)},
+%%      {<<"data">>, D}];
 
-encode_message(jsx, T, C, I, D) when T =:= request; T =:= result ->
-    [{<<"type">>, erodlib_jsx:atom_value(type, T)},
+encode_message(jsx, result, C, I, S, undefined) ->
+    [{<<"type">>, <<"result">>},
      {<<"id">>, erodlib_jsx:binary_value(id, I)},
      {<<"cls">>, erodlib_jsx:atom_value(cls, C)},
+     {<<"status">>, erodlib_jsx:integer_value(cls, S)}];
+
+encode_message(jsx, result, C, I, S, D) ->
+    [{<<"type">>, <<"result">>},
+     {<<"id">>, erodlib_jsx:binary_value(id, I)},
+     {<<"cls">>, erodlib_jsx:atom_value(cls, C)},
+     {<<"status">>, erodlib_jsx:integer_value(cls, S)},
      {<<"data">>, D}];
 
-encode_message(jsx, error, C, undefined, undefined) ->
-    [{<<"type">>, <<"error">>},
-     {<<"cls">>, erodlib_jsx:atom_value(cls, C)}];
-
-encode_message(jsx, error, C, undefined, D) ->
+encode_message(jsx, error, C, undefined, S, undefined) ->
     [{<<"type">>, <<"error">>},
      {<<"cls">>, erodlib_jsx:atom_value(cls, C)},
+     {<<"status">>, erodlib_jsx:integer_value(cls, S)}];
+
+encode_message(jsx, error, C, undefined, S, D) ->
+    [{<<"type">>, <<"error">>},
+     {<<"cls">>, erodlib_jsx:atom_value(cls, C)},
+     {<<"status">>, erodlib_jsx:integer_value(cls, S)},
      {<<"data">>, D}];
 
-encode_message(jsx, error, C, I, undefined) ->
-    [{<<"type">>, <<"error">>},
-     {<<"id">>, erodlib_jsx:binary_value(id, I)},
-     {<<"cls">>, erodlib_jsx:atom_value(cls, C)}];
-
-encode_message(jsx, error, C, I, D) ->
+encode_message(jsx, error, C, I, S, undefined) ->
     [{<<"type">>, <<"error">>},
      {<<"id">>, erodlib_jsx:binary_value(id, I)},
      {<<"cls">>, erodlib_jsx:atom_value(cls, C)},
+     {<<"status">>, erodlib_jsx:integer_value(cls, S)}];
+
+encode_message(jsx, error, C, I, S, D) ->
+    [{<<"type">>, <<"error">>},
+     {<<"id">>, erodlib_jsx:binary_value(id, I)},
+     {<<"cls">>, erodlib_jsx:atom_value(cls, C)},
+     {<<"status">>, erodlib_jsx:integer_value(cls, S)},
      {<<"data">>, D}];
 
 %%%TODO: Enable when supporting notifications
-%% encode_message(jsx, notify, C, undefined, undefined) ->
+%% encode_message(jsx, notify, C, undefined, undefined, undefined) ->
 %%     [{<<"type">>, <<"notify">>},
 %%      {<<"cls">>, erodlib_jsx:atom_value(cls, C)}];
 %%
-%% encode_message(jsx, notify, C, undefined, D) ->
+%% encode_message(jsx, notify, C, undefined, undefined, D) ->
 %%     [{<<"type">>, <<"notify">>},
 %%      {<<"cls">>, erodlib_jsx:atom_value(cls, C)},
 %%      {<<"data">>, D}];
@@ -179,7 +202,7 @@ encode_message(jsx, error, C, I, D) ->
 %% encode_message(jsx, notify, _, _, _) ->
 %%     error({format_error, {value_not_allowed, id}});
 
-encode_message(jsx, _, _, _, _) ->
+encode_message(jsx, _, _, _, _, _) ->
     error({format_error, {value_not_allowed, type}}).
 
 

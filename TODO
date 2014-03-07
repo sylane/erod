@@ -14,3 +14,4 @@ TODO:
   * Some decoding factory registration to support set_content and add_child.
   * Move erod_document_process functions to erod_document_worker.
   * Use records internally for action parameters.
+  * Move patch related functions out in its own erlib_patch module.

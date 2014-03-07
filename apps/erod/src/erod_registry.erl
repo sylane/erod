@@ -354,7 +354,8 @@ continue_inside_action({error, Reason}, Action, [DocKey |_], Ctx) ->
 
 %% Running from inside the calling process.
 perform_outside_action(Action, [DocKey |_] = Args, Ctx)
-  when Action =:= get_content; Action =:= get_children ->
+  when Action =:= get_content; Action =:= get_children;
+       Action =:= patch_content ->
     try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
         DocPid -> erod_document_process:perform(DocPid, Action, Args, Ctx)
     catch error:badarg ->

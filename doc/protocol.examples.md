@@ -17,6 +17,7 @@ Response
     {"type": "result",
      "id": "xasdq3213sdfa",
      "cls": "login",
+     "status": 200,
      "data": {"session": "asda2ad22da",
               "self": {"type": "user", "id": 423421341},
               "rooms": {"type": "rooms", "id": 232134123},
@@ -32,7 +33,8 @@ Error
     {"type": "error",
      "id": "xasdq3213sdfa",
      "cls": "login",
-     "data": {"code": 232412}}
+     "status": 401
+     "data": {"code": 4010130, msg": "Invalid Credential"}}
 
 
 Logout
@@ -51,7 +53,8 @@ Response
 
     {"type": "result",
      "id": "asdfq3fqaw3aw",
-     "cls": "logout"}
+     "cls": "logout",
+     "status": 200}
 
 
 Reconnect
@@ -71,7 +74,8 @@ Response
 
     {"type": "result",
      "id": "sdf234fw3ww",
-     "cls": "reconnect"}
+     "cls": "reconnect",
+     "status": 200}
 
 
 Content Query
@@ -92,7 +96,8 @@ Not Changed Response
 
     {"type": "result",
      "id": "asdf323rsasdf",
-     "cls": "query_content"}
+     "cls": "query_content",
+     "status": "204"}
 
 
 Full Response
@@ -101,6 +106,7 @@ Full Response
     {"type": "result",
      "id": "asdf323rsasdf",
      "cls": "get_content",
+     "status": 200,
      "data": {"key": {"type": "user", "id": 423421341},
               "ver": ["server_213233213", 123412412],
               "content": {"first_name": "Foo",
@@ -116,6 +122,7 @@ Patch response
     {"type": "result",
      "id": "asdf323rsasdf",
      "cls": "get_content",
+     "status": 206,
      "data": {"key": {"type": "user", "id": 423421341},
               "ver": ["server_213233213", 123412412]
               "patch": [{"op": "replace", "path": "/presence", "offline"}]}}
@@ -142,7 +149,8 @@ Not Changed Response
 
     {"type": "result",
      "id": "qwdf3rs3wr",
-     "cls": "get_children"}
+     "cls": "get_children",
+     "status": 204}
 
 
 Full Response
@@ -151,6 +159,7 @@ Full Response
     {"type": "result",
      "id": "qwdf3rs3wr",
      "cls": "get_children",
+     "status": 200,
      "data": {"key": {"type": "fav", "id": 423421341},
               "ver": ["server_213233213", 12341332423]
               "view": "asc_pres_first",
@@ -170,6 +179,7 @@ Patch Response
     {"type": "result",
      "id": "qwdf3rs3wr",
      "cls": "get_content",
+     "status": 206,
      "data": {"key": {"type": "fav", "id": 423421341},
               "ver": ["server_213233213", 12341332423]
               "view": "asc_pres_first",
@@ -214,6 +224,7 @@ Success Response
     {"type": "result",
      "id": "asdf3wf3r",
      "cls": "patch_content",
+     "status": 200,
      "data": {"ver": ["server_213233213", 23479087213]}}
 
 
@@ -223,7 +234,8 @@ Error Response
     {"type": "error",
      "id": "asdf3wf3r",
      "cls": "patch_content",
-     "data": {"code": 10323}}
+     "status": 409,
+     "data": {"code": 4090630, msg": "Version Conflict"}}
 
 
 Adding Children
@@ -255,6 +267,7 @@ Response
     {"type": "result",
      "id": "sdf3223dqs",
      "cls": "add_child",
+     "status": 200,
      "data": {"key": {"type": "room", "id": 2134123}}}
 
 
@@ -296,4 +309,5 @@ Response
 
     {"type": "result",
      "id": "wdfqwef32f23f",
-     "cls": "changed"}
+     "cls": "changed",
+     "status": 200}
