@@ -1,7 +1,45 @@
+%%% ==========================================================================
+%%% Copyright (c) 2014 Sebastien Merle <s.merle@gmail.com>
+%%%
+%%% This file is part of erodws.
+%%%
+%%% Erodws is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%% ==========================================================================
+%%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
+%%% @author Sebastien Merle <s.merle@gmail.com>
+%%% @doc
+%%% @end
+%%% @private
+%%% ==========================================================================
+
 -module(erodws_protocol).
+
+-author('Sebastien Merle').
+
+
+%%% ==========================================================================
+%%% Includes
+%%% ==========================================================================
 
 -include("erodws_protocol.hrl").
 
+
+%%% ==========================================================================
+%%% Exports
+%%% ==========================================================================
+
+%%% API functions
 -export([new/3,
          attach_context/2,
          release_context/1,
@@ -14,16 +52,35 @@
          encode_result_reply/6,
          encode_error/4]).
 
+
+%%% ==========================================================================
+%%% Maros
+%%% ==========================================================================
+
 -define(Proto, ?MODULE).
+
+
+%%% ==========================================================================
+%%% Records
+%%% ==========================================================================
+
 -record(?Proto, {peer :: {inet:ip_address(), inet:port_number()},
                  ctx :: erod:context() | undefined,
                  mod :: module(),
                  state :: term()}).
 
 
+%%% ==========================================================================
+%%% Types
+%%% ==========================================================================
+
 -type protocol() :: #?Proto{}.
 -export_type([protocol/0]).
 
+
+%%% ==========================================================================
+%%% Behaviour erodws_protocol Specification
+%%% ==========================================================================
 
 -callback init(Req, Options)
     -> {ok, Req, State}
@@ -40,10 +97,19 @@
          Identity :: term(), Token :: term().
 
 
+%%% ==========================================================================
+%%% API Functions
+%%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Creates a new protocol with specified callack module and options.
+%% @end
+%% -----------------------------------------------------------------
 -spec new(Req, Module, Options)
     -> {ok, Req, Proto}
     when Req :: cowboy_req:req(), Module :: module(),
          Options :: term(), Proto :: protocol().
+%% -----------------------------------------------------------------
 
 new(Req, Module, Options) ->
     {Peer, Req2} = cowboy_req:peer(Req),
@@ -53,47 +119,72 @@ new(Req, Module, Options) ->
     {ok, Req3, Proto#?Proto{mod = Module, state = State}}.
 
 
+%% -----------------------------------------------------------------
+%% @doc Attaches a context to the protocol.
+%% @end
+%% -----------------------------------------------------------------
 -spec attach_context(Context, Protocol)
     -> Protocol
     when Context :: erod:context(), Protocol :: protocol().
+%% -----------------------------------------------------------------
 
 attach_context(Ctx, #?Proto{ctx = undefined} = Proto) ->
     info("Websocket attached.", [], Ctx),
     Proto#?Proto{ctx = erod_context:compact(Ctx)}.
 
 
+%% -----------------------------------------------------------------
+%% @doc Releases the protocol current context.
+%% @end
+%% -----------------------------------------------------------------
 -spec release_context(Protocol)
     -> Protocol
     when Protocol :: protocol().
+%% -----------------------------------------------------------------
 
 release_context(#?Proto{ctx = Ctx} = Proto) ->
     info("Websocket released.", [], Ctx),
     Proto#?Proto{ctx = undefined}.
 
 
+%% -----------------------------------------------------------------
+%% @doc Shutdowns the protocol.
+%% @end
+%% -----------------------------------------------------------------
 -spec shutdown(Reason, Protocol)
     -> Protocol
     when Reason :: term(), Protocol :: protocol().
+%% -----------------------------------------------------------------
 
 shutdown(Reason, Proto) ->
     info("Websocket is shutting down: ~p.", [Reason], Proto),
     Proto.
 
 
+%% -----------------------------------------------------------------
+%% @doc Informs the protocol of termination.
+%% @end
+%% -----------------------------------------------------------------
 -spec terminated(Reason, Protocol)
     -> Protocol
     when Reason :: term(), Protocol :: protocol().
+%% -----------------------------------------------------------------
 
 terminated(Reason, Proto) ->
     info("Websocket has been terminated: ~p", [Reason], Proto),
     Proto.
 
 
+%% -----------------------------------------------------------------
+%% @doc Handles a protocol packet.
+%% @end
+%% -----------------------------------------------------------------
 -spec handle_packet(Fmt, Data, Protocol)
     -> {ok, Protocol}
      | {error, Reason, Protocol}
     when Fmt :: atom(), Data :: term(),
          Protocol :: protocol(), Reason :: term().
+%% -----------------------------------------------------------------
 
 handle_packet(Fmt, Data, Proto) ->
     try erodws_proto_message:decode(Fmt, Data) of
@@ -107,28 +198,43 @@ handle_packet(Fmt, Data, Proto) ->
     end.
 
 
+%% -----------------------------------------------------------------
+%% @doc Encodes an error reply to a given message in specified format.
+%% @end
+%% -----------------------------------------------------------------
 -spec encode_error_reply(Fmt, Msg, Error, Protocol)
     -> {ok, Data, Protocol}
     when Fmt :: atom(), Msg :: erodws_message(),
          Error :: term(), Data :: term(), Protocol :: protocol().
+%% -----------------------------------------------------------------
 
 encode_error_reply(Fmt, #?Msg{type = request, id = Id, cls = Cls}, Error, Proto) ->
     {ok, erodws_proto_message:encode_error_reply(Fmt, Cls, Id, Error), Proto}.
 
 
+%% -----------------------------------------------------------------
+%% @doc Encodes an error reply with given identifier in specified format.
+%% @end
+%% -----------------------------------------------------------------
 -spec encode_error_reply(Fmt, Cls, Id, Error, Protocol)
     -> {ok, Data, Protocol}
     when Fmt :: atom(), Cls :: atom(), Id :: erodws_request_id(),
          Error :: term(), Data :: term(), Protocol :: protocol().
+%% -----------------------------------------------------------------
 
 encode_error_reply(Fmt, Cls, Id, Error, Proto) ->
     {ok, erodws_proto_message:encode_error_reply(Fmt, Cls, Id, Error), Proto}.
 
 
+%% -----------------------------------------------------------------
+%% @doc Encodes a result reply to a given message in specified format.
+%% @end
+%% -----------------------------------------------------------------
 -spec encode_result_reply(Fmt, Msg, Status, Result, Protocol)
     -> {ok, Data, Protocol}
     when Fmt :: atom(), Msg :: erodws_message(), Status :: pos_integer(),
          Result :: term(), Data :: term(), Protocol :: protocol().
+%% -----------------------------------------------------------------
 
 encode_result_reply(Fmt, Msg, Status, Res, Proto) ->
     #?Msg{type = request, id = Id, cls = Cls} = Msg,
@@ -136,28 +242,39 @@ encode_result_reply(Fmt, Msg, Status, Res, Proto) ->
     {ok, Pkt, Proto}.
 
 
+%% -----------------------------------------------------------------
+%% @doc Encodes a result reply with given identifier in specified format.
+%% @end
+%% -----------------------------------------------------------------
 -spec encode_result_reply(Fmt, Cls, Id, Status, Result, Protocol)
     -> {ok, Data, Protocol}
     when Fmt :: atom(), Cls :: atom(), Id :: erodws_request_id(),
          Status :: pos_integer(), Result :: term(),
          Data :: term(), Protocol :: protocol().
+%% -----------------------------------------------------------------
 
 encode_result_reply(Fmt, Cls, Id, Status, Res, Proto) ->
     Pkt = erodws_proto_message:encode_result_reply(Fmt, Cls, Id, Status, Res),
     {ok, Pkt, Proto}.
 
 
+%% -----------------------------------------------------------------
+%% @doc Encodes an error in specified format.
+%% @end
+%% -----------------------------------------------------------------
 -spec encode_error(Fmt, Cls, Error, Protocol)
     -> {ok, Data, Protocol}
     when Fmt :: atom(), Cls :: atom(),
          Error :: term(), Data :: term(), Protocol :: protocol().
+%% -----------------------------------------------------------------
 
 encode_error(Fmt, Cls, Error, Proto) ->
     {ok, erodws_proto_message:encode_error(Fmt, Cls, Error), Proto}.
 
 
-
-
+%%% ==========================================================================
+%%% API Functions
+%%% ==========================================================================
 
 handle_message(Msg, #?Proto{ctx = undefined, peer = Peer} = Proto) ->
     Ctx = erodws_context:new(self(), Peer, Msg),

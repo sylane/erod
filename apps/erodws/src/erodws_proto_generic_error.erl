@@ -1,10 +1,61 @@
+%%% ==========================================================================
+%%% Copyright (c) 2014 Sebastien Merle <s.merle@gmail.com>
+%%%
+%%% This file is part of erodws.
+%%%
+%%% Erodws is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%% ==========================================================================
+%%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
+%%% @author Sebastien Merle <s.merle@gmail.com>
+%%% @doc
+%%% @end
+%%% @private
+%%% ==========================================================================
+
 -module(erodws_proto_generic_error).
+
+-author('Sebastien Merle').
+
+
+%%% ==========================================================================
+%%% Includes
+%%% ==========================================================================
 
 -include("erodws_protocol.hrl").
 
+
+%%% ==========================================================================
+%%% Eports
+%%% ==========================================================================
+
+%%% API functions
 -export([decode/2,
          encode/2]).
 
+
+%%% ==========================================================================
+%%% API Functions
+%%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Decodes an error record from specified data in specified format.
+%% @throws {format_error, Reason} for any decoding error.
+%% @end
+%% -----------------------------------------------------------------
+-spec decode(Fmt, Data) -> Error
+    when Fmt :: term, Data :: term(), Error :: erodws_error().
+%% -----------------------------------------------------------------
 
 decode(term, Term) ->
     Code = erodlib_term:get_integer(code, Term),
@@ -12,6 +63,15 @@ decode(term, Term) ->
     Debug = erodlib_term:get_binary(debug, Term, undefined),
     #?MODULE{code = Code, msg = Msg, debug = Debug}.
 
+
+%% -----------------------------------------------------------------
+%% @doc Encodes an error record to specified format.
+%% @throws {format_error, Reason} for any encoding error.
+%% @end
+%% -----------------------------------------------------------------
+-spec encode(Fmt, Error) -> Data
+    when Fmt :: jsx, Error :: erodws_error(), Data :: term().
+%% -----------------------------------------------------------------
 
 encode(jsx, #?MODULE{code = Code, msg = undefined, debug = undefined}) ->
     [{<<"code">>, erodlib_jsx:integer_value(code, Code)}];

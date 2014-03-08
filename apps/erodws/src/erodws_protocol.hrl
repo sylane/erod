@@ -36,6 +36,7 @@
 
 
 -type erodws_message() :: #erodws_proto_message{}.
+-type erodws_error() :: #erodws_proto_generic_error{}.
 -type erodws_request_id() :: binary().
 
 

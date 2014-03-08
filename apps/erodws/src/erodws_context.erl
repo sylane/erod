@@ -1,13 +1,53 @@
+%%% ==========================================================================
+%%% Copyright (c) 2014 Sebastien Merle <s.merle@gmail.com>
+%%%
+%%% This file is part of erodws.
+%%%
+%%% Erodws is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%% ==========================================================================
+%%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
+%%% @author Sebastien Merle <s.merle@gmail.com>
+%%% @doc
+%%% @end
+%%% @private
+%%% ==========================================================================
+
 -module(erodws_context).
 
--include_lib("erod/include/erod_document.hrl").
--include("erodws_protocol.hrl").
+-author('Sebastien Merle').
 
 -behaviour(erod_context).
 
+
+%%% ==========================================================================
+%%% Includes
+%%% ==========================================================================
+
+-include_lib("erod/include/erod_document.hrl").
+
+-include("erodws_protocol.hrl").
+
+
+%%% ==========================================================================
+%%% Exports
+%%% ==========================================================================
+
+%%% API functions
 -export([new/3,
          clone/4]).
 
+%%% Behaviour erod_context callbacks
 -export([init/1,
          format_log_id/2,
          done/4,
@@ -16,17 +56,53 @@
          released/1]).
 
 
+%%% ==========================================================================
+%%% Macros
+%%% ==========================================================================
+
 -define(St, ?MODULE).
+
+
+%%% ==========================================================================
+%%% Records
+%%% ==========================================================================
+
 -record(?St, {conn, peer, replied = false, type, cls, id}).
 
+
+%%% ==========================================================================
+%%% API Functions
+%%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Creates a new context for a message.
+%% @end
+%% -----------------------------------------------------------------
+-spec new(Connection, Peer, Msg) -> Context
+    when Connection :: pid(), Peer :: {inet:ip_address(), inet:port_number()},
+         Msg :: erodws_message(), Context :: erod:context().
+%% -----------------------------------------------------------------
 
 new(Connection, Peer, Msg) ->
     erod_context:new(?MODULE, {Connection, Peer, Msg}).
 
 
+%% -----------------------------------------------------------------
+%% @doc Clones an existing message for a message.
+%% @end
+%% -----------------------------------------------------------------
+-spec clone(Connection, Peer, Msg, Context) -> Context
+    when Connection :: pid(), Peer :: {inet:ip_address(), inet:port_number()},
+         Msg :: erodws_message(), Context :: erod:context().
+%% -----------------------------------------------------------------
+
 clone(Connection, Peer, Msg, Ctx) ->
     erod_context:clone(?MODULE, {Connection, Peer, Msg}, Ctx).
 
+
+%%% ==========================================================================
+%%% Behaviour erod_context Callacks
+%%% ==========================================================================
 
 init({Conn, Peer, #?Msg{type = T, cls = C, id = I}}) ->
     #?St{conn = Conn, peer = Peer, type = T, cls = C, id = I}.
@@ -69,26 +145,6 @@ done(Action, Result, Ctx, #?St{type = Type, cls = Cls} = St) ->
                        "succeed for ~p ~p with result: ~p",
                        [Action, Cls, Type, Result], Ctx),
     send_error_reply(Action, internal_error, Ctx, St).
-
-
-done_get_content(unchanged, Ctx, St) ->
-    send_result_reply(get_content, 204, undefined, Ctx, St);
-
-done_get_content(#erod_content{type = entity} = Result, Ctx, St) ->
-    send_result_reply(get_content, 200, Result, Ctx, St);
-
-done_get_content(#erod_content{type = patch} = Result, Ctx, St) ->
-    send_result_reply(get_content, 206, Result, Ctx, St).
-
-
-done_get_children(unchanged, Ctx, St) ->
-    send_result_reply(get_children, 204, undefined, Ctx, St);
-
-done_get_children(#erod_page{type = entity} = Result, Ctx, St) ->
-    send_result_reply(get_children, 200, Result, Ctx, St);
-
-done_get_children(#erod_page{type = patch} = Result, Ctx, St) ->
-    send_result_reply(get_children, 206, Result, Ctx, St).
 
 
 failed(get_content, Reason, Ctx, #?St{cls = get_content} = St) ->
@@ -135,6 +191,29 @@ released(#?St{conn = Conn} = St) ->
     erodws_connection:release_context(Conn),
     St.
 
+
+%%% ==========================================================================
+%%% Internal Functions
+%%% ==========================================================================
+
+done_get_content(unchanged, Ctx, St) ->
+    send_result_reply(get_content, 204, undefined, Ctx, St);
+
+done_get_content(#erod_content{type = entity} = Result, Ctx, St) ->
+    send_result_reply(get_content, 200, Result, Ctx, St);
+
+done_get_content(#erod_content{type = patch} = Result, Ctx, St) ->
+    send_result_reply(get_content, 206, Result, Ctx, St).
+
+
+done_get_children(unchanged, Ctx, St) ->
+    send_result_reply(get_children, 204, undefined, Ctx, St);
+
+done_get_children(#erod_page{type = entity} = Result, Ctx, St) ->
+    send_result_reply(get_children, 200, Result, Ctx, St);
+
+done_get_children(#erod_page{type = patch} = Result, Ctx, St) ->
+    send_result_reply(get_children, 206, Result, Ctx, St).
 
 
 send_result_reply(Act, Status, _Res,  Ctx, #?St{replied = true} = St) ->

@@ -1,15 +1,70 @@
+%%% ==========================================================================
+%%% Copyright (c) 2014 Sebastien Merle <s.merle@gmail.com>
+%%%
+%%% This file is part of erodws.
+%%%
+%%% Erodws is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%% ==========================================================================
+%%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
+%%% @author Sebastien Merle <s.merle@gmail.com>
+%%% @doc
+%%% @end
+%%% @private
+%%% ==========================================================================
+
 -module(erodws_proto_message).
+
+-author('Sebastien Merle').
+
+%%% ==========================================================================
+%%% Includes
+%%% ==========================================================================
 
 -include("erodws_protocol.hrl").
 
+
+%%% ==========================================================================
+%%% Exports
+%%% ==========================================================================
+
+%%% API functions
 -export([decode/2,
          encode/2,
          encode_error/3,
          encode_error_reply/4,
          encode_result_reply/5]).
 
+
+%%% ==========================================================================
+%%% Macros
+%%% ==========================================================================
+
 -define(MSG_TYPES, [request, result, error, notify]).
 
+
+%%% ==========================================================================
+%%% API Functions
+%%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Decodes a message from specified data in specified format.
+%% @throws {format_error, Reason} for any decoding error.
+%% @end
+%% -----------------------------------------------------------------
+-spec decode(Fmt, Data) -> Message
+    when Fmt :: term | jsx | json, Data :: term(), Message :: erodws_message().
+%% -----------------------------------------------------------------
 
 decode(json, Json) ->
     decode(jsx, erodlib_jsx:decode(json, Json));
@@ -26,11 +81,17 @@ decode(term, Term) ->
     Id = decode_id(Type, Term),
     Cls = erodlib_term:get_atom(cls, Term),
     Data = decode_data(term, Type, Cls, Term),
-    #?Msg{type = Type, id = Id, cls = Cls, data = Data};
+    #?Msg{type = Type, id = Id, cls = Cls, data = Data}.
 
-decode(Fmt, _Any) ->
-    error({format_error, {unsupported_format, Fmt}}).
 
+%% -----------------------------------------------------------------
+%% @doc Encode a message to specified format.
+%% @throws {format_error, Reason} for any encoding error.
+%% @end
+%% -----------------------------------------------------------------
+-spec encode(Fmt, Message) -> Data
+    when Fmt :: jsx | json, Message :: erodws_message(), Data :: term().
+%% -----------------------------------------------------------------
 
 encode(json, Msg) ->
     erodlib_jsx:encode(json, encode(jsx, Msg));
@@ -42,6 +103,15 @@ encode(Fmt, _Any) ->
     error({format_error, {unsupported_format, Fmt}}).
 
 
+%% -----------------------------------------------------------------
+%% @doc Encode an erlang error as a message in specified format.
+%% @throws {format_error, Reason} for any encoding error.
+%% @end
+%% -----------------------------------------------------------------
+-spec encode_error(Fmt, Cls, Error) -> Data
+    when Fmt :: jsx | json, Cls :: atom(), Error :: term(), Data :: term().
+%% -----------------------------------------------------------------
+
 encode_error(json, Cls, Error) ->
     erodlib_jsx:encode(json, encode_error(jsx, Cls, Error));
 
@@ -51,6 +121,16 @@ encode_error(Fmt, Cls, Error) ->
     Data = erodws_proto_generic_error:encode(Fmt, ErrorRec),
     encode_message(Fmt, error, Cls, undefined, Status, Data).
 
+
+%% -----------------------------------------------------------------
+%% @doc Encode an erlang error as a reply message in specified format.
+%% @throws {format_error, Reason} for any encoding error.
+%% @end
+%% -----------------------------------------------------------------
+-spec encode_error_reply(Fmt, Cls, Id, Error) -> Data
+    when Fmt :: jsx | json, Cls :: atom(), Id :: binary(),
+         Error :: term(), Data :: term().
+%% -----------------------------------------------------------------
 
 encode_error_reply(json, Cls, Id, Error) ->
     erodlib_jsx:encode(json, encode_error_reply(jsx, Cls, Id, Error));
@@ -62,6 +142,16 @@ encode_error_reply(Fmt, Cls, Id, Error) ->
     encode_message(Fmt, error, Cls, Id, Status, Data).
 
 
+%% -----------------------------------------------------------------
+%% @doc Encode a result as a reply message in specified format.
+%% @throws {format_error, Reason} for any encoding error.
+%% @end
+%% -----------------------------------------------------------------
+-spec encode_result_reply(Fmt, Cls, Id, Status, Result) -> Data
+    when Fmt :: jsx | json, Cls :: atom(), Id :: binary(),
+         Status :: pos_integer(), Result :: term(), Data :: term().
+%% -----------------------------------------------------------------
+
 encode_result_reply(json, Cls, Id, Status, Result) ->
     erodlib_jsx:encode(json, encode_result_reply(jsx, Cls, Id, Status, Result));
 
@@ -70,6 +160,9 @@ encode_result_reply(Fmt, Cls, Id, Status, Result) ->
     encode_message(Fmt, result, Cls, Id, Status, Data).
 
 
+%%% ==========================================================================
+%%% Internal Functions
+%%% ==========================================================================
 
 decode_id(request, Term) ->
     erodlib_term:get_binary(id, Term);
