@@ -270,7 +270,7 @@ get_patch(Key, Term) ->
 ensure_undefined(Key, Term) ->
     case lookup(Key, Term) of
         false -> undefined;
-        _ -> error({format_error, {key_not_allowed, Key}})
+        _ -> throw({format_error, {key_not_allowed, Key}})
     end.
 
 
@@ -314,46 +314,46 @@ lookup(Key, Term) when is_list(Term) ->
     lists:keyfind(Key, 1, Term);
 
 lookup(_Key, _Term) ->
-    error({format_error, bad_structure}).
+    throw({format_error, bad_structure}).
 
 
 bin2atom(Key, {Key, Value}) when is_binary(Value) ->
     case erodlib:maybe_atom(Value, {}) of
-        {} -> error({format_error, {value_not_allowed, Key}});
+        {} -> throw({format_error, {value_not_allowed, Key}});
         Atom -> Atom
     end;
 
 bin2atom(Key, {Key, _Value}) ->
-    error({format_error, {bad_value_type, Key}});
+    throw({format_error, {bad_value_type, Key}});
 
 bin2atom(Key, false) ->
-    error({format_error, {key_required, Key}}).
+    throw({format_error, {key_required, Key}}).
 
 
 ensure_integer(Key, {Key, Value}) when is_integer(Value) -> Value;
 
 ensure_integer(Key, {Key, _Value}) ->
-    error({format_error, {bad_value_type, Key}});
+    throw({format_error, {bad_value_type, Key}});
 
 ensure_integer(Key, false) ->
-    error({format_error, {key_required, Key}}).
+    throw({format_error, {key_required, Key}}).
 
 
 ensure_bin(Key, {Key, Value})
   when is_binary(Value) -> Value;
 
 ensure_bin(Key, {Key, _Value}) ->
-    error({format_error, {bad_value_type, Key}});
+    throw({format_error, {bad_value_type, Key}});
 
 ensure_bin(Key, false) ->
-    error({format_error, {key_required, Key}}).
+    throw({format_error, {key_required, Key}}).
 
 
 ensure_bin(Key, {Key, Value}, _Default)
   when is_binary(Value) -> Value;
 
 ensure_bin(Key, {Key, _Value}, _Default) ->
-    error({format_error, {bad_value_type, Key}});
+    throw({format_error, {bad_value_type, Key}});
 
 ensure_bin(_Key, false, Default) ->
     Default.
@@ -363,7 +363,7 @@ ensure_struct(Key, {Key, Value}) ->
     Value;
 
 ensure_struct(Key, false) ->
-    error({format_error, {key_required, Key}}).
+    throw({format_error, {key_required, Key}}).
 
 
 ensure_struct(Key, {Key, Value}, _Default) ->
@@ -378,13 +378,13 @@ ensure_bool(_Key, false, Default) -> Default;
 ensure_bool(Key, {Key, Bool}, _Default) when is_boolean(Bool) -> Bool;
 
 ensure_bool(Key, {Key, _Value}, _Default) ->
-    error({format_error, {bad_value_type, Key}}).
+    throw({format_error, {bad_value_type, Key}}).
 
 
 allowed(Key, Value, Allowed) ->
     case lists:member(Value, Allowed) of
         true -> Value;
-        false -> error({format_error, {value_not_allowed, Key}})
+        false -> throw({format_error, {value_not_allowed, Key}})
     end.
 
 
@@ -394,7 +394,7 @@ struct2key(Key, {Key, Term}) ->
     build_key(Key, Type, Id);
 
 struct2key(Key, false) ->
-    error({format_error, {key_required, Key}}).
+    throw({format_error, {key_required, Key}}).
 
 
 struct2ver(Key, {Key, null}, Default) ->
@@ -411,10 +411,10 @@ struct2patch(Key, {Key, List}) when is_list(List) ->
     decode_patch(Key, List);
 
 struct2patch(Key, {Key, _Other}) ->
-    error({format_error, {bad_value_type, Key}});
+    throw({format_error, {bad_value_type, Key}});
 
 struct2patch(Key, false) ->
-    error({format_error, {key_required, Key}}).
+    throw({format_error, {key_required, Key}}).
 
 
 build_key(_Key, Type, Num) when is_integer(Num) -> {Type, Num};
@@ -425,7 +425,7 @@ build_key(Key, Type, List) when is_list(List) ->
     {Type, [decode_ident_part(Key, P) || P <- List]};
 
 build_key(Key, _Type, _List) ->
-    error({format_error, {bad_value_type, Key}}).
+    throw({format_error, {bad_value_type, Key}}).
 
 
 decode_ident_part(_Key, Value) when is_integer(Value) -> Value;
@@ -433,7 +433,7 @@ decode_ident_part(_Key, Value) when is_integer(Value) -> Value;
 decode_ident_part(_Key, Value) when is_binary(Value) -> Value;
 
 decode_ident_part(Key, _Value) ->
-    error({format_error, {bad_value_type, Key}}).
+    throw({format_error, {bad_value_type, Key}}).
 
 
 decode_patch(Key, List) ->
@@ -459,18 +459,18 @@ decode_patch_entry(_Key, Op, Entry) when Op =:= move; Op =:= copy ->
     {Op, From, Path};
 
 decode_patch_entry(Key, _Op, _Entry) ->
-    error({format_error, {value_not_allowed, Key}}).
+    throw({format_error, {value_not_allowed, Key}}).
 
 
 decode_patch_path(_Key, Path) when is_binary(Path) ->
     case binary:split(Path, <<"/">>, [global]) of
         [<<>> |PathItems] ->
             [decode_patch_path_item(I) || I <- PathItems];
-        _Any -> error({format_error, {value_not_allowed}})
+        _Any -> throw({format_error, {value_not_allowed}})
     end;
 
 decode_patch_path(Key, _Path) ->
-    error({format_error, {bad_value_type, Key}}).
+    throw({format_error, {bad_value_type, Key}}).
 
 
 decode_patch_path_item(Item1) ->

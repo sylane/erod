@@ -86,7 +86,7 @@ accept(_Ctx, _Proxy, #?St{conn = Conn} = State) ->
     try erlang:link(Conn) of
         true -> {ok, State}
     catch
-        _:badarg -> {eror, link_failed, State}
+        error:badarg -> {error, link_failed, State}
     end.
 
 

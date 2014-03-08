@@ -73,7 +73,7 @@ decode(jsx, Jsx) ->
     case erodlib_term:decode(jsx, Jsx) of
         [T |_] = Term when is_tuple(T) ->
             decode(term, Term);
-        _Any -> error({format_error, bad_structure})
+        _Any -> throw({format_error, bad_structure})
     end;
 
 decode(term, Term) ->
@@ -100,7 +100,7 @@ encode(jsx, #?Msg{type = T, id = I, cls = C, status = S, data = D}) ->
     encode_message(jsx, T, C, I, S, encode_data(jsx, T, C, D));
 
 encode(Fmt, _Any) ->
-    error({format_error, {unsupported_format, Fmt}}).
+    throw({format_error, {unsupported_format, Fmt}}).
 
 
 %% -----------------------------------------------------------------
@@ -220,7 +220,7 @@ encode_data(_Fmt, result, C, undefined)
 
 encode_data(_Fmt, result, C, _Any)
   when C =:= reconnect; C =:= logout ->
-    error({format_error, {value_not_allowed, data}});
+    throw({format_error, {value_not_allowed, data}});
 
 encode_data(Fmt, error, _Cls, #erodws_proto_generic_error{} = Data) ->
     erodws_proto_generic_error:encode(Fmt, Data);
@@ -293,10 +293,10 @@ encode_message(jsx, error, C, I, S, D) ->
 %%      {<<"data">>, D}];
 %%
 %% encode_message(jsx, notify, _, _, _) ->
-%%     error({format_error, {value_not_allowed, id}});
+%%     throw({format_error, {value_not_allowed, id}});
 
 encode_message(jsx, _, _, _, _, _) ->
-    error({format_error, {value_not_allowed, type}}).
+    throw({format_error, {value_not_allowed, type}}).
 
 
 

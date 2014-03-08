@@ -59,12 +59,12 @@
 decode(json, Json) ->
     try jsx:decode(Json) of
 %%TODO: Seems to fail dialyzer even though it is defined in decode/1 specs...
-%%         {incomplete, _} -> error({format_error, incomplete_json});
+%%         {incomplete, _} -> throw({format_error, incomplete_json});
         V when is_boolean(V); is_number(V); is_list(V); is_binary(V), V =:= null -> V;
-        _ -> error({format_error, bad_json})
+        _ -> throw({format_error, bad_json})
     catch
         error:badarg ->
-            error({format_error, bad_json})
+            throw({format_error, bad_json})
     end.
 
 
@@ -79,7 +79,7 @@ decode(json, Json) ->
 
 encode(json, Jsx) ->
     try jsx:encode(Jsx)
-    catch error:badarg -> error({format_error, bad_structure})
+    catch error:badarg -> throw({format_error, bad_structure})
     end.
 
 
@@ -104,7 +104,7 @@ encode_str(_Key, Atom) when is_atom(Atom) ->
     atom_to_binary(Atom, utf8);
 
 encode_str(Key, _Other) ->
-    error({format_error, {bad_value_type, Key}}).
+    throw({format_error, {bad_value_type, Key}}).
 
 
 %% -----------------------------------------------------------------
@@ -126,7 +126,7 @@ encode_str(Key, _Other) ->
 encode_str(Key, Value, Allowed) ->
     case lists:member(Value, Allowed) of
         true -> encode_str(Key, Value);
-        false -> error({format_error, {value_not_allowed, Key}})
+        false -> throw({format_error, {value_not_allowed, Key}})
     end.
 
 
@@ -146,7 +146,7 @@ encode_str(Key, Value, Allowed) ->
 encode_int(_Key, Value) when is_integer(Value) -> Value;
 
 encode_int(Key, _Value) ->
-    error({format_error, {bad_value_type, Key}}).
+    throw({format_error, {bad_value_type, Key}}).
 
 
 %% -----------------------------------------------------------------
@@ -166,7 +166,7 @@ encode_int(Key, _Value) ->
 encode_bool(_Key, Value) when is_boolean(Value) -> Value;
 
 encode_bool(Key, _Value) ->
-    error({format_error, {bad_value_type, Key}}).
+    throw({format_error, {bad_value_type, Key}}).
 
 
 %% -----------------------------------------------------------------
@@ -206,7 +206,7 @@ encode_any(Key, Rec) when is_tuple(Rec) ->
     catch error:undef ->
               lager:error("Encoding function ~p:encode(jsx, Data) not found "
                           "for data ~p", [element(1, Rec), Rec]),
-              error({format_error, {unsuported_value, Key}})
+              throw({format_error, {unsuported_value, Key}})
     end;
 
 encode_any(_Key, [T|_] = Term) when is_tuple(T) ->
@@ -216,7 +216,7 @@ encode_any(Key, List) when is_list(List) ->
     [encode_any(Key, V) || V <- List];
 
 encode_any(Key, _Other) ->
-    error({format_error, {bad_value_type, Key}}).
+    throw({format_error, {bad_value_type, Key}}).
 
 
 %% -----------------------------------------------------------------
@@ -247,7 +247,7 @@ encode_key(Key, {Type, List}) when is_list(List) ->
      {<<"id">>, [encode_ident_part(Key, V) || V <- List]}];
 
 encode_key(Key, _Value) ->
-    error({format_error, {bad_value_type, Key}}).
+    throw({format_error, {bad_value_type, Key}}).
 
 
 %% -----------------------------------------------------------------
@@ -271,7 +271,7 @@ encode_ver(Key, List) when is_list(List) ->
     [encode_ident_part(Key, V) || V <- List];
 
 encode_ver(Key, _Value) ->
-    error({format_error, {bad_value_type, Key}}).
+    throw({format_error, {bad_value_type, Key}}).
 
 
 %% -----------------------------------------------------------------
@@ -302,7 +302,7 @@ encode_ident_part(_Key, Num) when is_integer(Num) -> Num;
 encode_ident_part(_Key, Bin) when is_binary(Bin) -> Bin;
 
 encode_ident_part(Key, _Value) ->
-    error({format_error, {bad_value_type, Key}}).
+    throw({format_error, {bad_value_type, Key}}).
 
 
 encode_patch(_Key, [], Acc) -> lists:reverse(Acc);
@@ -327,7 +327,7 @@ encode_patch(Key, [{Op, From, Path} |Rem], Acc)
     encode_patch(Key, Rem, [Entry |Acc]);
 
 encode_patch(Key, _Any, _Acc) ->
-    error({format_error, {bad_value_type, Key}}).
+    throw({format_error, {bad_value_type, Key}}).
 
 
 encode_patch_path(Key, Path) ->
@@ -343,4 +343,4 @@ patch_path_to_list(Key, [Num |Rem]) when is_integer(Num) ->
     [$/, integer_to_list(Num) |patch_path_to_list(Key, Rem)];
 
 patch_path_to_list(Key, _Path) ->
-    error({format_error, {bad_value_type, Key}}).
+    throw({format_error, {bad_value_type, Key}}).
