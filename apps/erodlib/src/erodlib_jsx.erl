@@ -86,7 +86,7 @@ encode(json, Jsx) ->
 %% -----------------------------------------------------------------
 %% @doc Gives a JSX formated string value.
 %%
-%% Throw an error if the given value doesn't match the expectation.
+%% Throws an error if the given value doesn't match the expectation.
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
@@ -111,7 +111,7 @@ encode_str(Key, _Other) ->
 %% @doc Gives a JSX formated string value, if the value is part
 %% of the given allowed values.
 %%
-%% Throw an error if the given value doesn't match the expectation.
+%% Throws an error if the given value doesn't match the expectation.
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
@@ -133,7 +133,7 @@ encode_str(Key, Value, Allowed) ->
 %% -----------------------------------------------------------------
 %% @doc Gives a JSX formated integer value.
 %%
-%% Throw an error if the given value doesn't match the expectation.
+%% Throws an error if the given value doesn't match the expectation.
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
@@ -152,7 +152,7 @@ encode_int(Key, _Value) ->
 %% -----------------------------------------------------------------
 %% @doc Gives a JSX formated boolean value.
 %%
-%% Throw an error if the given value doesn't match the expectation.
+%% Throws an error if the given value doesn't match the expectation.
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
@@ -172,7 +172,7 @@ encode_bool(Key, _Value) ->
 %% -----------------------------------------------------------------
 %% @doc Gives a JSX formated term for the give value.
 %%
-%% Throw an error if the given value doesn't match any expectation.
+%% Throws an error if the given value doesn't match any expectation.
 %%
 %% If the value is a record, assume there is a module with the same
 %% name as the record with and encode/2 function able to encode it.
@@ -222,7 +222,7 @@ encode_any(Key, _Other) ->
 %% -----------------------------------------------------------------
 %% @doc Gives a JSX formated term for an erod key.
 %%
-%% Throw an error if the given value doesn't match the expectation.
+%% Throws an error if the given value doesn't match the expectation.
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
@@ -253,7 +253,7 @@ encode_key(Key, _Value) ->
 %% -----------------------------------------------------------------
 %% @doc Gives a JSX formated term for an erod version.
 %%
-%% Throw an error if the given value doesn't match the expectation.
+%% Throws an error if the given value doesn't match the expectation.
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
@@ -277,7 +277,7 @@ encode_ver(Key, _Value) ->
 %% -----------------------------------------------------------------
 %% @doc Gives a JSX formated term for an erod patch.
 %%
-%% Throw an error if the given value doesn't match the expectation.
+%% Throws an error if the given value doesn't match the expectation.
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
