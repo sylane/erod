@@ -1,4 +1,4 @@
--module(erod_maps).
+-module(erodlib_maps).
 
 -export([new/0,
          from_orddict/1,

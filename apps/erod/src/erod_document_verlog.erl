@@ -18,7 +18,7 @@
 new() ->
     Identity = crypto:rand_uniform(10000000,100000000),
     #?VerLog{identity = Identity, version = 0,
-             current = [], history = erod_maps:new()}.
+             current = [], history = erodlib_maps:new()}.
 
 
 version(#?VerLog{identity = Identity, version = Version}) ->
@@ -40,7 +40,7 @@ add_patch(Prefix, Patch, #?VerLog{current = Current} = VerLog) when is_list(Patc
 commit(#?VerLog{current = []} = VerLog) -> {false, VerLog};
 
 commit(#?VerLog{version = Version, current = Current, history = History} = VerLog) ->
-    NewHistory = erod_maps:insert(Version, lists:reverse(Current), History),
+    NewHistory = erodlib_maps:insert(Version, lists:reverse(Current), History),
     {true, VerLog#?VerLog{version = Version + 1,
                           current = [], history = NewHistory}}.
 
@@ -52,7 +52,7 @@ get_patch({Identity, Ver}, #?VerLog{identity = Identity, version = Ver}) ->
 
 get_patch({Identity, FromVer}, #?VerLog{identity = Identity} = VerLog) ->
     #?VerLog{version = Version, history = History} = VerLog,
-    case erod_maps:lookup_from(FromVer, History) of
+    case erodlib_maps:lookup_from(FromVer, History) of
         {values, Patches} -> {patch, Version, lists:flatten(Patches)};
         none -> none
     end;

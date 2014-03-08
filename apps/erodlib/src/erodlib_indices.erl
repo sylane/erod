@@ -1,4 +1,4 @@
--module(erod_indices).
+-module(erodlib_indices).
 
 -export([new/0,
          from_indice/1,
@@ -46,10 +46,10 @@ from_ordered(Items) ->
 
 for_map(CompareFun, Map) ->
     Fun = fun(Ka, Ka) -> true;
-             (Ka, Kb) -> CompareFun(erod_maps:value(Ka, Map),
-                                    erod_maps:value(Kb, Map))
+             (Ka, Kb) -> CompareFun(erodlib_maps:value(Ka, Map),
+                                    erodlib_maps:value(Kb, Map))
           end,
-    from_indice(lists:usort(Fun, erod_maps:keys(Map))).
+    from_indice(lists:usort(Fun, erodlib_maps:keys(Map))).
 
 
 keys({?MODULE, Tree}) ->
@@ -73,7 +73,7 @@ size({?MODULE, Tree}) ->
 
 
 index(Key, CompareFun, Map, Indice) ->
-    index(Key, erod_maps:value(Key, Map), CompareFun, Map, Indice).
+    index(Key, erodlib_maps:value(Key, Map), CompareFun, Map, Indice).
 
 
 index(Key, Value, CompareFun, Map, {?MODULE, Tree}) ->
@@ -81,7 +81,7 @@ index(Key, Value, CompareFun, Map, {?MODULE, Tree}) ->
 
 
 insert(Key, CompareFun, Map, Indice) ->
-    insert(Key, erod_maps:value(Key, Map), CompareFun, Map, Indice).
+    insert(Key, erodlib_maps:value(Key, Map), CompareFun, Map, Indice).
 
 
 insert(Key, Value, CompareFun, Map, {?MODULE, Tree}) ->
@@ -93,7 +93,7 @@ insert(Key, Value, CompareFun, Map, {?MODULE, Tree}) ->
 
 
 delete(Key, CompareFun, Map, Indice) ->
-    delete(Key, erod_maps:value(Key, Map), CompareFun, Map, Indice).
+    delete(Key, erodlib_maps:value(Key, Map), CompareFun, Map, Indice).
 
 
 delete(Key, Value, CompareFun, Map, {?MODULE, Tree}) ->
@@ -106,7 +106,7 @@ smallest_key(_ComapreFun, _Map, {?MODULE, Tree}) ->
 
 
 smallest_value(_CompareFun, Map, {?MODULE, Tree}) ->
-    erod_maps:value(tree_smallest(Tree), Map).
+    erodlib_maps:value(tree_smallest(Tree), Map).
 
 
 take_smallest_key(_ComapreFun, _Map, {?MODULE, Tree}) ->
@@ -116,7 +116,7 @@ take_smallest_key(_ComapreFun, _Map, {?MODULE, Tree}) ->
 
 take_smallest_value(_ComparFun, Map, {?MODULE, Tree}) ->
     {SmallestKey, NewTree} = tree_take_smallest(Tree),
-    {erod_maps:value(SmallestKey, Map), {?MODULE, NewTree}}.
+    {erodlib_maps:value(SmallestKey, Map), {?MODULE, NewTree}}.
 
 
 take_smallest_keys(_Count, _ComapreFun, _Map, {?MODULE, Tree}) ->
@@ -129,7 +129,7 @@ largest_key(_CompareFun, _Map, {?MODULE, Tree}) ->
 
 
 largest_value(_CompareFun, Map, {?MODULE, Tree}) ->
-    erod_maps:value(tree_largest(Tree), Map).
+    erodlib_maps:value(tree_largest(Tree), Map).
 
 
 take_largest_key(_ComapreFun, _Map, {?MODULE, Tree}) ->
@@ -139,7 +139,7 @@ take_largest_key(_ComapreFun, _Map, {?MODULE, Tree}) ->
 
 take_largest_value(_CompareFun, Map, {?MODULE, Tree}) ->
     {LargestKey, NewTree} = tree_take_largest(Tree),
-    {erod_maps:value(LargestKey, Map), {?MODULE, NewTree}}.
+    {erodlib_maps:value(LargestKey, Map), {?MODULE, NewTree}}.
 
 
 take_largest_keys(_Count, _ComapreFun, _Map, {?MODULE, Tree}) ->
@@ -162,7 +162,7 @@ tree_to_values(Map, Tree) -> tree_to_values(Map, Tree, []).
 
 
 tree_to_values(Map, {Key, _Size, _Weight, Smaller, Larger}, Acc) ->
-    Value = erod_maps:value(Key, Map),
+    Value = erodlib_maps:value(Key, Map),
     tree_to_values(Map, Smaller, [Value |tree_to_values(Map, Larger, Acc)]);
 
 tree_to_values(_Map, nil, Acc) -> Acc.
@@ -172,7 +172,7 @@ tree_to_list(Map, Tree) -> tree_to_list(Map, Tree, []).
 
 
 tree_to_list(Map, {Key, _Size, _Weight, Smaller, Larger}, Acc) ->
-    Item = {Key, erod_maps:value(Key, Map)},
+    Item = {Key, erodlib_maps:value(Key, Map)},
     tree_to_list(Map, Smaller, [Item |tree_to_list(Map, Larger, Acc)]);
 
 tree_to_list(_Map, nil, Acc) -> Acc.
@@ -182,7 +182,7 @@ tree_map(Fun, Map, Tree) -> tree_map(Fun, Map, Tree, []).
 
 
 tree_map(Fun, Map, {Key, _Size, _Weight, Smaller, Larger}, Acc) ->
-    Result = Fun({Key, erod_maps:value(Key, Map)}),
+    Result = Fun({Key, erodlib_maps:value(Key, Map)}),
     tree_map(Fun, Map, Smaller, [Result |tree_map(Fun, Map, Larger, Acc)]);
 
 tree_map(_Fun, _Map, nil, Acc) -> Acc.
@@ -197,7 +197,7 @@ tree_index(RefKey, _Val, _Comp, _Map, {RefKey, _S, _W, Smaller, _Larger}) ->
     tree_size(Smaller) + 1;
 
 tree_index(Key, Val, Comp, Map, {RefKey, _S, _W, Smaller, Larger}) ->
-    case Comp(Val, erod_maps:value(RefKey, Map)) of
+    case Comp(Val, erodlib_maps:value(RefKey, Map)) of
         true ->
             tree_index(Key, Val, Comp, Map, Smaller);
         false ->
@@ -209,7 +209,7 @@ tree_insert(RefKey, _Val, _Comp, _Map, {RefKey, _S, _W, _Sm, _Lg}, _WRef) ->
     erlang:error({key_already_exists, RefKey});
 
 tree_insert(Key, Val, Comp, Map, {RefKey, _S, _W, Smaller, Larger}, WRef) ->
-    case Comp(Val, erod_maps:value(RefKey, Map)) of
+    case Comp(Val, erodlib_maps:value(RefKey, Map)) of
         true ->
             case tree_insert(Key, Val, Comp, Map, Smaller, ?div2(WRef)) of
                 {ok, Idx, NewSmaller} ->
@@ -249,7 +249,7 @@ tree_delete(RefKey, _Val, _Comp, _Map, {RefKey, _S, _W, Smaller, Larger}) ->
     {tree_size(Smaller) + 1, tree_merge(Smaller, Larger)};
 
 tree_delete(Key, Val, Comp, Map, {RefKey, _Size, _Weight, Smaller, Larger}) ->
-    case Comp(Val, erod_maps:value(RefKey, Map)) of
+    case Comp(Val, erodlib_maps:value(RefKey, Map)) of
         true ->
             {Idx, NewSmaller} = tree_delete(Key, Val, Comp, Map, Smaller),
             {Idx, combinate(RefKey, NewSmaller, Larger)};

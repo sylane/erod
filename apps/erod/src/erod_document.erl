@@ -51,9 +51,9 @@ new(DocKey, Module, Options) ->
     case Module:init(DocKey, Options) of
         {error, _Reason} = Error -> Error;
         {ok, Content, Children, ViewSpecs, State} ->
-            ChildrenMap = erod_maps:from_items(Children),
+            ChildrenMap = erodlib_maps:from_items(Children),
             Views = create_views(ViewSpecs, Children, ChildrenMap),
-            ViewMap = erod_maps:from_items(Views),
+            ViewMap = erodlib_maps:from_items(Views),
             erod_registry:register_document(DocKey, self()),
             #?Doc{key = DocKey,
                   sub_mod = Module,
@@ -84,7 +84,7 @@ get_content(FromVer, Doc) ->
 
 get_children(ViewId, PageId, FromVer, Doc) ->
     #?Doc{sub_mod = Mod, children = Children, views = Views} = Doc,
-    case erod_maps:lookup(ViewId, Views) of
+    case erodlib_maps:lookup(ViewId, Views) of
         none -> {error, view_not_found};
         {value, View} ->
             Fun = fun ({K, V}) -> {Mod:export_child_key(K), V} end,

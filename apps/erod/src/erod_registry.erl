@@ -221,12 +221,12 @@ code_change(_OldVsn, State, _Extra) ->
 load_factories() ->
     {ok, AppName} = application:get_application(),
     FactorySpecs = application:get_env(AppName, document_factories, []),
-    erod_maps:from_items([{T, F} || {T, M, O} <- FactorySpecs,
+    erodlib_maps:from_items([{T, F} || {T, M, O} <- FactorySpecs,
                           begin {ok, F} = erod_factory:new(M, O), true end]).
 
 
 get_factory({Type, _Id}, #?St{factories = Factories}) ->
-    case erod_maps:lookup(Type, Factories) of
+    case erodlib_maps:lookup(Type, Factories) of
         {value, Fac} -> Fac;
         none -> none
     end.

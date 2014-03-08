@@ -20,8 +20,8 @@
 new(PageSize, CompareFun) ->
     #?View{page_size = PageSize,
            compare_fun = CompareFun,
-           changed_pages = erod_sets:new(),
-           pages = erod_maps:new()}.
+           changed_pages = erodlib_sets:new(),
+           pages = erodlib_maps:new()}.
 
 
 from_items([], PageSize, CompareFun, _Map) ->
@@ -33,7 +33,7 @@ from_items(Items, PageSize, CompareFun, Map) ->
     Pages = create_pages(Sorted, PageSize, CompareFun, Map),
     #?View{page_size = PageSize,
            compare_fun = CompareFun,
-           changed_pages = erod_sets:new(),
+           changed_pages = erodlib_sets:new(),
            pages = Pages}.
 
 
@@ -55,12 +55,12 @@ update_order(_Key, _Value, _Patch, _Map, View) ->
 
 
 commit(#?View{changed_pages = ChangedPages, pages = Pages} = View) ->
-    {Changed, NewPages} = commit_pages(erod_sets:to_list(ChangedPages), Pages),
-    {Changed, View#?View{changed_pages = erod_sets:new(), pages = NewPages}}.
+    {Changed, NewPages} = commit_pages(erodlib_sets:to_list(ChangedPages), Pages),
+    {Changed, View#?View{changed_pages = erodlib_sets:new(), pages = NewPages}}.
 
 
 get_content(PageId, FromVer, Fun, Map, #?View{pages = Pages}) ->
-    case erod_maps:lookup(PageId, Pages) of
+    case erodlib_maps:lookup(PageId, Pages) of
         none -> {error, page_not_found};
         {value, Page} ->
             erod_document_page:get_content(FromVer, Fun, Map, Page)
@@ -75,9 +75,9 @@ commit_pages([], Pages, Changed) ->
     {Changed, Pages};
 
 commit_pages([Index |Rem], Pages, Changed) ->
-    Page = erod_maps:value(Index, Pages),
+    Page = erodlib_maps:value(Index, Pages),
     {PageChanged, NewPage} = erod_document_page:commit(Page),
-    NewPages = erod_maps:update(Index, NewPage, Pages),
+    NewPages = erodlib_maps:update(Index, NewPage, Pages),
     commit_pages(Rem, NewPages, Changed or PageChanged).
 
 
@@ -86,7 +86,7 @@ create_pages(OrdValues, PageSize, CompareFun, Map) ->
 
 
 create_pages([], _Size, _CompareFun, _Map, _Idx, Acc) ->
-    erod_maps:from_orddict(lists:reverse(Acc));
+    erodlib_maps:from_orddict(lists:reverse(Acc));
 
 create_pages(Values, Size, CompareFun, Map, Idx, Acc) ->
     {PageData, NewValues} = take_first_nth(Size, Values),

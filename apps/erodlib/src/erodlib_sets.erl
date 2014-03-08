@@ -1,4 +1,4 @@
--module(erod_sets).
+-module(erodlib_sets).
 
 -export([new/0,
          to_list/1,
