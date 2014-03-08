@@ -6,8 +6,10 @@
 -export([start_document/3]).
 
 
--type key() :: {atom(), integer() | binary() | tuple()}.
--type version() :: term().
+-type key() :: erodlib:erod_key().
+-type version() :: erodlib:erod_version().
+-type patch() :: erodlib:erod_patch().
+
 -type view_id() :: atom().
 -type page_id() :: pos_integer().
 -type user_id() :: pos_integer().
@@ -18,7 +20,6 @@
 -type entity() :: tuple().
 -type entity_item() :: {key(), entity()}.
 -type entity_items() :: list(entity_item()) | [].
--type patch() :: list().
 
 -type view_spec() :: {ViewId :: atom(),
                       PageSize :: pos_integer(),

@@ -44,8 +44,7 @@
 
 
 -spec new(DocKey :: erod:key(), Module :: module(), Options :: list()) ->
-          erod:document().
-
+          erod:document() | {error, Reason :: term()}.
 
 new(DocKey, Module, Options) ->
     case Module:init(DocKey, Options) of

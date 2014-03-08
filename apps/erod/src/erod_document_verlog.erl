@@ -8,8 +8,8 @@
          get_patch/2]).
 
 -define(VerLog, ?MODULE).
--record(?VerLog, {identity,
-                  version,
+-record(?VerLog, {identity :: pos_integer(),
+                  version :: pos_integer(),
                   current,
                   history}).
 
@@ -17,12 +17,12 @@
 
 new() ->
     Identity = crypto:rand_uniform(10000000,100000000),
-    #?VerLog{identity = Identity, version = 0,
+    #?VerLog{identity = Identity, version = 1,
              current = [], history = erodlib_maps:new()}.
 
 
 version(#?VerLog{identity = Identity, version = Version}) ->
-    {Identity, Version}.
+    [Identity, Version].
 
 
 add_patch(Entry, #?VerLog{current = Current} = VerLog) when is_tuple(Entry) ->
@@ -47,14 +47,15 @@ commit(#?VerLog{version = Version, current = Current, history = History} = VerLo
 
 get_patch(undefined, _VerLog) -> none;
 
-get_patch({Identity, Ver}, #?VerLog{identity = Identity, version = Ver}) ->
+get_patch([Identity, Ver], #?VerLog{identity = Identity, version = Ver}) ->
     unchanged;
 
-get_patch({Identity, FromVer}, #?VerLog{identity = Identity} = VerLog) ->
+get_patch([Identity, FromVer], #?VerLog{identity = Identity} = VerLog) ->
     #?VerLog{version = Version, history = History} = VerLog,
     case erodlib_maps:lookup_from(FromVer, History) of
-        {values, Patches} -> {patch, Version, lists:flatten(Patches)};
-        none -> none
+        none -> none;
+        {values, Patches} ->
+            {patch, [Identity, Version], lists:flatten(Patches)}
     end;
 
 get_patch(_FromVer, _VerLog) -> none.

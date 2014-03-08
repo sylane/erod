@@ -55,8 +55,8 @@ update_order(_Key, _Value, _Patch, _Map, View) ->
 
 
 commit(#?View{changed_pages = ChangedPages, pages = Pages} = View) ->
-    {Changed, NewPages} = commit_pages(erodlib_sets:to_list(ChangedPages), Pages),
-    {Changed, View#?View{changed_pages = erodlib_sets:new(), pages = NewPages}}.
+    {Changed, Pages2} = commit_pages(erodlib_sets:values(ChangedPages), Pages),
+    {Changed, View#?View{changed_pages = erodlib_sets:new(), pages = Pages2}}.
 
 
 get_content(PageId, FromVer, Fun, Map, #?View{pages = Pages}) ->

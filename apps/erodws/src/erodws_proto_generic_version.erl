@@ -71,4 +71,4 @@ decode(term, Term) ->
 %% -----------------------------------------------------------------
 
 encode(jsx, Version) ->
-    [{<<"ver">>, erodlib_jsx:ver_value(ver, Version)}].
+    [{<<"ver">>, erodlib_jsx:encode_ver(ver, Version)}].

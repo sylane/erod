@@ -3,7 +3,7 @@
 
 -record(erod_content,
         {key :: erod:key(),
-         ver :: erod:version(),
+         ver :: erod:version() | undefined,
          type :: erod:content_type(),
          data :: erod:entity() | erod:patch()}).
 

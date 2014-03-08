@@ -8,11 +8,11 @@
 encode(jsx, Result) ->
     #?MODULE{session = Session, self = Self, rooms = Rooms, fav = Fav,
              root = Root, home = Home, config = Config} = Result,
-    [{<<"session">>, erodlib_jsx:binary_value(session, Session)},
-     {<<"self">>, erodlib_jsx:key_value(self, Self)},
-     {<<"rooms">>, erodlib_jsx:key_value(rooms, Rooms)},
-     {<<"fav">>, erodlib_jsx:key_value(fav, Fav)},
-     {<<"root">>, erodlib_jsx:key_value(root, Root)},
-     {<<"home">>, erodlib_jsx:key_value(home, Home)},
-     {<<"config">>, erodlib_jsx:struct_value(config, Config)}].
+    [{<<"session">>, erodlib_jsx:encode_str(session, Session)},
+     {<<"self">>, erodlib_jsx:encode_key(self, Self)},
+     {<<"rooms">>, erodlib_jsx:encode_key(rooms, Rooms)},
+     {<<"fav">>, erodlib_jsx:encode_key(fav, Fav)},
+     {<<"root">>, erodlib_jsx:encode_key(root, Root)},
+     {<<"home">>, erodlib_jsx:encode_key(home, Home)},
+     {<<"config">>, erodlib_jsx:encode_any(config, Config)}].
 

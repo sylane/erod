@@ -57,6 +57,6 @@
 %% -----------------------------------------------------------------
 
 decode(term, Term) ->
-    Username = erodlib_term:get_binary(username, Term),
-    Password = erodlib_term:get_binary(password, Term),
+    Username = erodlib_term:get_bin(username, Term),
+    Password = erodlib_term:get_bin(password, Term),
     {Username, {Username, Password}}.

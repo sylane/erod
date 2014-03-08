@@ -8,9 +8,9 @@
 encode(jsx, Content) ->
     #?MODULE{first_name = FN, last_name = LN, display_name = DN,
              picture = Pic, presence = Pres, connected = Conn} = Content,
-    [{<<"first_name">>, erodlib_jsx:binary_value(first_name, FN)},
-     {<<"last_name">>, erodlib_jsx:binary_value(last_name, LN)},
-     {<<"display_name">>, erodlib_jsx:binary_value(display_name, DN)},
-     {<<"picture">>, erodlib_jsx:binary_value(picture, Pic)},
-     {<<"presence">>, erodlib_jsx:atom_value(presence, Pres)},
-     {<<"connected">>, erodlib_jsx:bool_value(connected, Conn)}].
+    [{<<"first_name">>, erodlib_jsx:encode_str(first_name, FN)},
+     {<<"last_name">>, erodlib_jsx:encode_str(last_name, LN)},
+     {<<"display_name">>, erodlib_jsx:encode_str(display_name, DN)},
+     {<<"picture">>, erodlib_jsx:encode_str(picture, Pic)},
+     {<<"presence">>, erodlib_jsx:encode_str(presence, Pres)},
+     {<<"connected">>, erodlib_jsx:encode_bool(connected, Conn)}].

@@ -59,12 +59,12 @@ encode(jsx, undefined) -> undefined;
 
 encode(jsx, #erod_content{type = entity} = Content) ->
     #erod_content{key = Key, ver = Ver, data = Data} = Content,
-    [{<<"key">>, erodlib_jsx:key_value(key, Key)},
-     {<<"ver">>, erodlib_jsx:ver_value(ver, Ver)},
-     {<<"content">>, erodlib_jsx:struct_value(content, Data)}];
+    [{<<"key">>, erodlib_jsx:encode_key(key, Key)},
+     {<<"ver">>, erodlib_jsx:encode_ver(ver, Ver)},
+     {<<"content">>, erodlib_jsx:encode_any(content, Data)}];
 
 encode(jsx, #erod_content{type = patch} = Content) ->
     #erod_content{key = Key, ver = Ver, data = Data} = Content,
-    [{<<"key">>, erodlib_jsx:key_value(key, Key)},
-     {<<"ver">>, erodlib_jsx:ver_value(ver, Ver)},
-     {<<"patch">>, erodlib_jsx:patch_value(patch, Data)}].
+    [{<<"key">>, erodlib_jsx:encode_key(key, Key)},
+     {<<"ver">>, erodlib_jsx:encode_ver(ver, Ver)},
+     {<<"patch">>, erodlib_jsx:encode_patch(patch, Data)}].

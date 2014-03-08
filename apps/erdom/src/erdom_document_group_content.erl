@@ -7,4 +7,4 @@
 
 encode(jsx, Content) ->
     #?MODULE{name = N} = Content,
-    [{<<"name">>, erodlib_jsx:binary_value(name, N)}].
+    [{<<"name">>, erodlib_jsx:encode_str(name, N)}].

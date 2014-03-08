@@ -56,4 +56,4 @@
 %% -----------------------------------------------------------------
 
 decode(term, Term) ->
-    {undefined, erodlib_term:get_binary(session, Term)}.
+    {undefined, erodlib_term:get_bin(session, Term)}.
