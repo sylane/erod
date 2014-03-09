@@ -85,7 +85,7 @@ add_watcher(DocKey, WatcherPid) when is_pid(WatcherPid) ->
     ets:insert(?WATCHER_PID_TO_KEY, Item),
     try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
         DocPid ->
-            erod_document_process:add_watcher(DocPid, DocKey, WatcherPid)
+            erod_document_proc:add_watcher(DocPid, DocKey, WatcherPid)
     catch error:badarg -> ok end.
 
 
@@ -117,14 +117,14 @@ get_content(DocKey, FromVer) ->
 get_content(DocKey, FromVer, Watcher) ->
     add_watcher(DocKey, Watcher),
     try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
-        Pid -> erod_document_process:get_content(Pid, DocKey, FromVer, Watcher)
+        Pid -> erod_document_proc:get_content(Pid, DocKey, FromVer, Watcher)
     catch error:badarg ->
         case gen_server:call(?PROCESS, {get_document_for_content, DocKey}) of
             {error, _Reason} = Error -> Error;
             {ask_factory, Factory} ->
                 erod_factory:get_content(DocKey, Factory);
             {ok, Pid} ->
-                erod_document_process:get_content(Pid, DocKey, FromVer, Watcher)
+                erod_document_proc:get_content(Pid, DocKey, FromVer, Watcher)
         end
     end.
 
@@ -142,7 +142,7 @@ get_children(DocKey, ViewId, PageId, FromVer, Watcher)->
     case get_document(DocKey) of
         {error, _Reason} = Error -> Error;
         {ok, DocPid} ->
-            erod_document_process:get_children(DocPid, DocKey, ViewId,
+            erod_document_proc:get_children(DocPid, DocKey, ViewId,
                                                PageId, FromVer, Watcher)
     end.
 
@@ -317,21 +317,21 @@ unregister_interest_impl(DocKey, WatcherPid) ->
     ets:delete_object(?WATCHER_KEY_TO_PID, Item),
     ets:delete_object(?WATCHER_PID_TO_KEY, Item),
     try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
-        DocPid -> erod_document_process:del_watcher(DocPid, DocKey, WatcherPid)
+        DocPid -> erod_document_proc:del_watcher(DocPid, DocKey, WatcherPid)
     catch error:badarg -> ok end.
 
 
 notify_change_impl([], _DocKey, _Patch) -> ok;
 
 notify_change_impl([WatcherPid |Watchers], DocKey, Patch) ->
-    erod_document_process:notify_change(WatcherPid, DocKey, Patch),
+    erod_document_proc:notify_change(WatcherPid, DocKey, Patch),
     notify_change_impl(Watchers, DocKey, Patch).
 
 
 notify_state_impl([], _DocKey, _State) -> ok;
 
 notify_state_impl([WatcherPid |Watchers], DocKey, State) ->
-    erod_document_process:notify_state(WatcherPid, DocKey, State),
+    erod_document_proc:notify_state(WatcherPid, DocKey, State),
     notify_state_impl(Watchers, DocKey, State).
 
 
@@ -344,7 +344,7 @@ perform_inside_action(Action, [DocKey |_] = Args, Ctx, State) ->
 %% Running from inside the calling process or a specially spawned process
 %% if case the document had to be created.
 continue_inside_action({ok, DocPid}, Action, Args, Ctx) ->
-    erod_document_process:perform(DocPid, Action, Args, Ctx);
+    erod_document_proc:perform(DocPid, Action, Args, Ctx);
 
 continue_inside_action({error, Reason}, Action, [DocKey |_], Ctx) ->
     erod_context:warning("Registry could not find document ~p to perform ~p.",
@@ -357,7 +357,7 @@ perform_outside_action(Action, [DocKey |_] = Args, Ctx)
   when Action =:= get_content; Action =:= get_children;
        Action =:= patch_content ->
     try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
-        DocPid -> erod_document_process:perform(DocPid, Action, Args, Ctx)
+        DocPid -> erod_document_proc:perform(DocPid, Action, Args, Ctx)
     catch error:badarg ->
         gen_server:cast(?PROCESS, {perform, Action, Args, Ctx})
     end;

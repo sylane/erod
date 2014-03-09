@@ -12,6 +12,8 @@
          add_child/2,
          patch_child/3]).
 
+-export([reply/2]).
+
 -export([handle_message/2]).
 
 -define(Doc, ?MODULE).
@@ -121,6 +123,10 @@ patch_child(_ChildKey, _Patch, Doc) ->
     {ok, Doc}.
 
 
+reply({To, Tag}, Reply) ->
+    try To ! {Tag, Reply} of _ -> ok catch _:_ -> ok end.
+
+
 handle_message({'$doc_perform', Act, [K |_] = A, Ctx}, #?Doc{key = K} = Doc) ->
     {ok, perform_action(Act, A, Ctx, Doc)};
 
@@ -163,10 +169,6 @@ create_views([], _Children, _Map, Acc) -> Acc;
 create_views([{Id, PageSize, CompareFun} |Rem], Children, Map, Acc) ->
     View = erod_document_view:from_items(Children, PageSize, CompareFun, Map),
     create_views(Rem, Children, Map, [{Id, View} |Acc]).
-
-
-reply({To, Tag}, Reply) ->
-    try To ! {Tag, Reply} of _ -> ok catch _:_ -> ok end.
 
 
 perform_action(get_content, [_, Ver, Subs |_], Ctx, Doc) ->

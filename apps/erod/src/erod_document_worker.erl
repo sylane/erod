@@ -1,9 +1,42 @@
+%%% ==========================================================================
+%%% Copyright (c) 2014 Sebastien Merle <s.merle@gmail.com>
+%%%
+%%% This file is part of erod.
+%%%
+%%% Erod is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%% ==========================================================================
+%%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
+%%% @author Sebastien Merle <s.merle@gmail.com>
+%%% @doc TODO: Document module erod_document_worker.
+%%% @end
+%%% ==========================================================================
+
 -module(erod_document_worker).
+
+-author('Sebastien Merle').
 
 -behaviour(gen_server).
 
+
+%%% ==========================================================================
+%%% Exports
+%%% ==========================================================================
+
+%%% Process control function
 -export([start_link/3]).
 
+%%% Behaviour gen_erver callacks
 -export([init/1,
          handle_call/3,
          handle_cast/2,
@@ -11,14 +44,41 @@
          terminate/2,
          code_change/3]).
 
+%%% ==========================================================================
+%%% Macros
+%%% ==========================================================================
+
 -define(St, ?MODULE).
 
--record(?St, {doc}).
 
+%%% ==========================================================================
+%%% Records
+%%% ==========================================================================
+
+-record(?St, {doc :: erod:document()}).
+
+
+%%% ==========================================================================
+%%% Proces Control Functions
+%%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Starts and links a new document process with specified
+%% factory module and options.
+%% @end
+%% -----------------------------------------------------------------
+-spec start_link(DocKey, FacMod, FacOpts) -> {ok, Pid} | {error, Reason}
+    when DocKey :: erod:key(), FacMod :: module, FacOpts :: term(),
+         Pid :: pid(), Reason :: term().
+%% -----------------------------------------------------------------
 
 start_link(DocKey, FacMod, FacOpts) ->
     gen_server:start_link(?MODULE, [DocKey, FacMod, FacOpts], []).
 
+
+%%% ==========================================================================
+%%% Behaviour gen_server Callbacks
+%%% ==========================================================================
 
 init([DocKey, FacMod, FacOpts]) ->
     lager:info("Worker process for document ~p started.", [DocKey]),

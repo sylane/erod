@@ -11,7 +11,4 @@ TODO:
   * Do some sort of patch history cleanup (use trim_smallest).
   * Implement erod_shelf that contains multiple documents.
   * Make the erod_user process a shelf for user-specific documents.
-  * Some decoding factory registration to support set_content and add_child.
-  * Move erod_document_process functions to erod_document_worker.
-  * Use records internally for action parameters.
   * Move patch related functions out in its own erlib_patch module.
