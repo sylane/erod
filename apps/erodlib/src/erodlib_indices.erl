@@ -202,7 +202,7 @@ map(Fun, Map, {?MODULE, Tree}) ->
 %% @end
 %% -----------------------------------------------------------------
 -spec size(Indice) -> Size
-    when Indice :: indice(), Size :: pos_integer().
+    when Indice :: indice(), Size :: non_neg_integer().
 %% -----------------------------------------------------------------
 
 size({?MODULE, Tree}) ->

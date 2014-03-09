@@ -1,10 +1,51 @@
+%%% ==========================================================================
+%%% Copyright (c) 2014 Sebastien Merle <s.merle@gmail.com>
+%%%
+%%% This file is part of erod.
+%%%
+%%% Erod is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%% ==========================================================================
+%%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
+%%% @author Sebastien Merle <s.merle@gmail.com>
+%%% @doc TODO: Document module erod.
+%%% @end
+%%% ==========================================================================
+
 -module(erod).
+
+-author('Sebastien Merle').
+
+
+%%% ==========================================================================
+%%% Includes
+%%% ==========================================================================
 
 -include("erod_document.hrl").
 -include("erod_policy.hrl").
 
+
+%%% ==========================================================================
+%%% Exports
+%%% ==========================================================================
+
+%%% API functions
 -export([start_document/3]).
 
+
+%%% ==========================================================================
+%%% Types
+%%% ==========================================================================
 
 -type key() :: erodlib:erod_key().
 -type version() :: erodlib:erod_version().
@@ -30,6 +71,11 @@
 -type page() :: #erod_page{}.
 -type policy() :: #erod_policy{}.
 
+-type action_id() :: atom().
+-type action_args() :: [term()] | [].
+-type action() :: {action_id(), action_args()}.
+-type actions() :: [action()] | [].
+
 -type document() :: erod_document:document().
 -type context() :: erod_context:context().
 -type proxy() :: erod_proxy:proxy().
@@ -39,8 +85,22 @@
               content_type/0, view_spec/0, view_specs/0,
               entity/0, entity_item/0, entity_items/0, patch/0,
               content/0, page/0, policy/0,
+              action_id/0, action_args/0, action/0, actions/0,
               document/0, context/0, proxy/0]).
 
 
-start_document(DocKey, Factory, Options) ->
-    erod_document_sup:start_child(DocKey, Factory, Options).
+%%% ==========================================================================
+%%% API Functions
+%%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Starts a document process for the gien document factory and options.
+%% @end
+%% -----------------------------------------------------------------
+-spec start_document(DocKey, FactMod, Opts) -> {ok, Pid} | {error, Reason}
+    when DocKey :: erod:key(), FactMod :: module(), Opts :: term(),
+         Pid :: pid(), Reason :: term().
+%% -----------------------------------------------------------------
+
+start_document(DocKey, FactMod, Opts) ->
+    erod_document_sup:start_child(DocKey, FactMod, Opts).

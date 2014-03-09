@@ -20,7 +20,6 @@
 %%% @author Sebastien Merle <s.merle@gmail.com>
 %%% @doc TODO: Document module erodws.
 %%% @end
-%%% @private
 %%% ==========================================================================
 
 -module(erodws).

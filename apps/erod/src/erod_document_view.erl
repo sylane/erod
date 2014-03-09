@@ -90,7 +90,7 @@ create_pages([], _Size, _CompareFun, _Map, _Idx, Acc) ->
 
 create_pages(Values, Size, CompareFun, Map, Idx, Acc) ->
     {PageData, NewValues} = take_first_nth(Size, Values),
-    Page = erod_document_page:from_ordered(PageData, CompareFun, Map),
+    Page = erod_document_page:from_orddict(PageData, CompareFun, Map),
     create_pages(NewValues, Size, CompareFun, Map, Idx + 1, [{Idx, Page} |Acc]).
 
 

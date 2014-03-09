@@ -20,7 +20,6 @@
 %%% @author Sebastien Merle <s.merle@gmail.com>
 %%% @doc TODO: Document module erodws_protocol.
 %%% @end
-%%% @private
 %%% ==========================================================================
 
 -module(erodws_protocol).
@@ -330,7 +329,7 @@ handle_message(request, reconnect, _, Data, Ctx, Proto) ->
     NewProto;
 
 handle_message(request, logout, _, _, Ctx, Proto) ->
-    erod_actions:perform(logout, undefined, Ctx),
+    erod_actions:perform(logout, [], Ctx),
     Proto.
 
 

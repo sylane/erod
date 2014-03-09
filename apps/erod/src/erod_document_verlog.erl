@@ -13,6 +13,9 @@
                   current,
                   history}).
 
+-type verlog() :: #?VerLog{}.
+
+-export_type([verlog/0]).
 
 
 new() ->

@@ -1,11 +1,60 @@
+%%% ==========================================================================
+%%% Copyright (c) 2014 Sebastien Merle <s.merle@gmail.com>
+%%%
+%%% This file is part of erod.
+%%%
+%%% Erod is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%% ==========================================================================
+%%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
+%%% @author Sebastien Merle <s.merle@gmail.com>
+%%% @doc TODO: Document module erod_actions.
+%%% @end
+%%% ==========================================================================
+
 -module(erod_actions).
+
+-author('Sebastien Merle').
+
+
+%%% ==========================================================================
+%%% Includes
+%%% ==========================================================================
 
 -include("erod_context.hrl").
 
+
+%%% ==========================================================================
+%%% Eports
+%%% ==========================================================================
+
+%%% API functions
 -export([perform/1,
          perform/2,
          perform/3]).
 
+
+%%% ==========================================================================
+%%% API Functions
+%%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Performs the next action for the given context.
+%% @end
+%% -----------------------------------------------------------------
+-spec perform(Context) -> ok
+    when Context :: erod:context().
+%% -----------------------------------------------------------------
 
 perform(#?Ctx{actions = undefined}) -> ok;
 
@@ -15,14 +64,37 @@ perform(#?Ctx{actions = [{Action, Args} |_]} = Ctx) ->
     perform_action(Action, Args, Ctx).
 
 
+%% -----------------------------------------------------------------
+%% @doc Setups the given context with the specified list of actions
+%% and starts the first one. If the context already have some actions
+%% setup the function will crash.
+%% @end
+%% -----------------------------------------------------------------
+-spec perform(Actions, Context) -> ok
+    when Actions :: erod:actions(), Context :: erod:context().
+%% -----------------------------------------------------------------
+
 perform(Actions, #?Ctx{actions = undefined} = Ctx) ->
     perform(Ctx#?Ctx{actions = Actions}).
 
+
+%% -----------------------------------------------------------------
+%% @doc Setups the given context with the specified action and starts it.
+%% If the context already have some actions setup the function will crash.
+%% @end
+%% -----------------------------------------------------------------
+-spec perform(Action, Args, Context) -> ok
+    when Action :: erod:action_id(), Args :: erod:action_args(),
+         Context :: erod:context().
+%% -----------------------------------------------------------------
 
 perform(Action, Args, #?Ctx{actions = undefined} = Ctx) ->
     perform(Ctx#?Ctx{actions = [{Action, Args}]}).
 
 
+%%% ==========================================================================
+%%% Internal Functions
+%%% ==========================================================================
 
 perform_action(get_content, Args, Ctx) ->
     perform_registry_action(get_content, Args, Ctx);

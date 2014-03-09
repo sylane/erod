@@ -101,7 +101,7 @@ from_items(Items) ->
 %% @end
 %% -----------------------------------------------------------------
 -spec size(Map) -> Size
-    when Map :: emap(), Size :: pos_integer().
+    when Map :: emap(), Size :: non_neg_integer().
 %% -----------------------------------------------------------------
 
 size(Map) ->

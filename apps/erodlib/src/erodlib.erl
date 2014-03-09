@@ -48,9 +48,9 @@
 -type compare_fun() :: erodlib_indices:compare_fun().
 -type map_fun() :: erodlib_indices:map_fun().
 
--type erod_key_part() :: 0 | pos_integer() | binary().
+-type erod_key_part() :: non_neg_integer() | binary().
 -type erod_key() :: {atom(), erod_key_part() | list(erod_key_part())}.
--type erod_ver_part() :: 0 | pos_integer() | binary().
+-type erod_ver_part() :: non_neg_integer() | binary().
 -type erod_version() :: list(erod_ver_part()).
 -type erod_patch_path() :: [atom() | pos_integer()].
 -type erod_patch_entry() :: {remove, erod_patch_path()}

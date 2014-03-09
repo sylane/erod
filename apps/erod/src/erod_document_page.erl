@@ -1,3 +1,24 @@
+%%% ==========================================================================
+%%% Copyright (c) 2014 Sebastien Merle <s.merle@gmail.com>
+%%%
+%%% This file is part of erod.
+%%%
+%%% Erod is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%% ==========================================================================
+%%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
+%%% @author Sebastien Merle <s.merle@gmail.com>
+%%% @doc TODO: Document module erod_docuemnt_page.
 %%% Requirments:
 %%%    - Fast Item lookup by key
 %%%    - Ordered by given comparison function
@@ -5,11 +26,21 @@
 %%%    - Optional reordering on update.
 %%%    - Keep track of the version
 %%%    - Keep a log of changes in a JSON patch-like format.
+%%% @end
+%%% ==========================================================================
 
 -module(erod_document_page).
 
+-author('Sebastien Merle').
+
+
+%%% ==========================================================================
+%%% Exports
+%%% ==========================================================================
+
+%%% API functions
 -export([new/0,
-         from_ordered/3,
+         from_orddict/3,
          size/1,
          smallest/1,
          insert/5,
@@ -19,12 +50,49 @@
          commit/1,
          get_content/4]).
 
--define(Page, ?MODULE).
--record(?Page, {indice,
-                first,
-                last,
-                verlog}).
+%%% ==========================================================================
+%%% Macros
+%%% ==========================================================================
 
+-define(Page, ?MODULE).
+
+
+%%% ==========================================================================
+%%% Records
+%%% ==========================================================================
+
+-record(?Page, {indice :: indice(),
+                first :: term() | undefined,
+                last :: term() | undefined,
+                verlog :: verlog()}).
+
+
+%%% ==========================================================================
+%%% Types
+%%% ==========================================================================
+
+-type page() :: #?Page{}.
+
+-type verlog() :: erod_document_verlog:verlog().
+-type indice() :: erodlib:indice().
+-type emap() :: erodlib:emap().
+-type compare_fun() :: erodlib:compare_fun().
+-type map_fun() :: erodlib:map_fun().
+
+-export_type([page/0]).
+
+
+%%% ==========================================================================
+%%% API Functions
+%%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Creates a new empty document page.
+%% @end
+%% -----------------------------------------------------------------
+-spec new() -> Page
+    when Page :: page().
+%% -----------------------------------------------------------------
 
 new() ->
     #?Page{indice = erodlib_indices:new(),
@@ -32,9 +100,18 @@ new() ->
            verlog = erod_document_verlog:new()}.
 
 
-from_ordered([], _CompareFun, _Map) -> new();
+%% -----------------------------------------------------------------
+%% @doc Creates a new document page forma an ordered list of items.
+%% @end
+%% -----------------------------------------------------------------
+-spec from_orddict(Items, CompareFun, Map) -> Page
+    when Items :: [{Key, Value}] | [], Key :: term(), Value :: term(),
+         CompareFun :: compare_fun(), Map :: emap(), Page :: page().
+%% -----------------------------------------------------------------
 
-from_ordered(ValOrdDict, _CompFun, Map) ->
+from_orddict([], _CompareFun, _Map) -> new();
+
+from_orddict(ValOrdDict, _CompFun, Map) ->
     Indice = erodlib_indices:from_orddict(ValOrdDict),
     {_, First} = hd(ValOrdDict),
     Last = erodlib_indices:largest_value(Map, Indice),
@@ -43,13 +120,44 @@ from_ordered(ValOrdDict, _CompFun, Map) ->
            verlog = erod_document_verlog:new()}.
 
 
+%% -----------------------------------------------------------------
+%% @doc Gives the numer of elements in the page.
+%% @end
+%% -----------------------------------------------------------------
+-spec size(Page) -> Size
+    when Page :: page(), Size :: non_neg_integer().
+%% -----------------------------------------------------------------
+
 size(#?Page{indice = Indice}) ->
     erodlib_indices:size(Indice).
 
 
+%% -----------------------------------------------------------------
+%% @doc Gives the smallest value of the page or undefined if the page is empty.
+%% @end
+%% -----------------------------------------------------------------
+-spec smallest(Page) -> Value
+    when Page :: page(), Value :: term() | undefined.
+%% -----------------------------------------------------------------
+
 smallest(#?Page{first = Val}) ->
     Val.
 
+
+%% -----------------------------------------------------------------
+%% @doc Inserts a key and value pair in the page with specified comparison
+%% function to find out the pair position in the page.
+%%
+%% If the value in the specified map for the given key is different
+%% from the specified value the outcome of the function is undetermined.
+%%
+%% Assume the key is not present in the page, crash otherwise.
+%% @end
+%% -----------------------------------------------------------------
+-spec insert(Key, Value, CompFun, Map, Page) -> Page
+    when Key :: term(), Value :: term(), CompFun :: compare_fun(),
+         Map :: emap(), Page :: page().
+%% -----------------------------------------------------------------
 
 insert(Key, Val, CompFun, Map, Page) ->
     #?Page{indice = Indice} = Page,
@@ -60,6 +168,18 @@ insert(Key, Val, CompFun, Map, Page) ->
     add_patch({add, [Idx], Val}, Page3).
 
 
+%% -----------------------------------------------------------------
+%% @doc Deletes a key and value pair from the page with specified comparison
+%% function to find out the pair position in the page.
+%%
+%% Assume the key is present in the page, crash otherwise.
+%% @end
+%% -----------------------------------------------------------------
+-spec delete(Key, CompFun, Map, Page) -> Page
+    when Key :: term(), CompFun :: compare_fun(),
+         Map :: emap(), Page :: page().
+%% -----------------------------------------------------------------
+
 delete(Key, CompFun, Map, Page) ->
     #?Page{indice = Indice} = Page,
     Size = erodlib_indices:size(Indice),
@@ -69,7 +189,19 @@ delete(Key, CompFun, Map, Page) ->
     add_patch({remove, [Idx]}, Page3).
 
 
-%%% Not changing the order
+%% -----------------------------------------------------------------
+%% @doc Updates a page's value that do not need any reordering.
+%%
+%% The specified patch MUST contains the instructions that applied
+%% to the current page value would give the new value, otherwise
+%% the version journal would be broken.
+%% @end
+%% -----------------------------------------------------------------
+-spec update_inplace(Key, Value, Patch, CompFun, Map, Page) -> Page
+    when Key :: term(), Value :: term(), Patch :: erod:patch(),
+         CompFun :: compare_fun(), Map :: emap(), Page :: page().
+%% -----------------------------------------------------------------
+
 update_inplace(Key, Val, Patch, CompFun, Map, Page) ->
     #?Page{indice = Indice} = Page,
     Pos = erodlib_indices:position(Key, Val, CompFun, Map, Indice),
@@ -77,6 +209,24 @@ update_inplace(Key, Val, Patch, CompFun, Map, Page) ->
     Page2 = update_fix_barrier(Val, Pos, Pos, Size, Map, Page),
     add_patch(Pos, Patch, Page2).
 
+
+%% -----------------------------------------------------------------
+%% @doc Updates a page's value that could need reordering.
+%%
+%% If the page cannot know if the value is still part of itself,
+%% it will delete the value and let the caller resolve where it
+%% should be inserted back.
+%%
+%% The specified patch MUST contains the instructions that applied
+%% to the current page value would give the new value, otherwise
+%% the version journal would be broken.
+%% @end
+%% -----------------------------------------------------------------
+-spec update_order(Key, Value, Patch, CompFun, Map, Page)
+    -> {ok, Page} | {deleted, Page}
+    when Key :: term(), Value :: term(), Patch :: erod:patch(),
+         CompFun :: compare_fun(), Map :: emap(), Page :: page().
+%% -----------------------------------------------------------------
 
 update_order(Key, Val, Patch, CompFun, Map, Page) ->
     #?Page{indice = Idx} = Page,
@@ -97,24 +247,65 @@ update_order(Key, Val, Patch, CompFun, Map, Page) ->
     end.
 
 
+%% -----------------------------------------------------------------
+%% @doc Commits all the changes since the last commit into a new page version.
+%% Returns if the page changed or not since the last commit.
+%% @end
+%% -----------------------------------------------------------------
+-spec commit(Page) -> {HasChanged, Page}
+    when Page :: page(), HasChanged :: boolean().
+%% -----------------------------------------------------------------
+
 commit(#?Page{verlog = VerLog} = Page) ->
     {Changed, NewVerLog} = erod_document_verlog:commit(VerLog),
     {Changed, Page#?Page{verlog = NewVerLog}}.
 
 
-get_content(FromVer, Fun, Map, #?Page{indice = Indice, verlog = VerLog}) ->
+%% -----------------------------------------------------------------
+%% @doc Gives the content of the page from a given version.
+%%
+%% If the specified version undefined or not found in the history
+%% the full content of the page is returned as a list of items,
+%% alongside the new version, the page size and the total size of the document.
+%%
+%% If the specified version is found in the history, only a cumulative patch
+%% to get to the last version from the specified version is returned,
+%% alongside the new version, the page size and the total size of the document.
+%%
+%% If the page did not change since the specified version
+%% 'unchanged' is returned.
+%%
+%% The specified function is applied on all the page items
+%% to generate the result set if the complete entity is returned.
+%% @end
+%% -----------------------------------------------------------------
+-spec get_content(Version, MapFun, Map, Page)
+    -> unchanged
+     | {entity, Version, PageSize, TotalSize, Data}
+     | {patch, version, PageSize, TotalSize, Patch}
+    when Version :: erod:version(), MapFun :: map_fun(), Map :: emap(),
+         Page :: page(), PageSize :: non_neg_integer(),
+         TotalSize :: non_neg_integer(), Data :: [term()] | [],
+         Patch :: erod:patch().
+%% -----------------------------------------------------------------
+
+get_content(FromVer, MapFun, Map, #?Page{indice = Indice, verlog = VerLog}) ->
     PageSize = erodlib_indices:size(Indice),
     TotalSize = erodlib_maps:size(Map),
     case erod_document_verlog:get_patch(FromVer, VerLog) of
         unchanged -> unchanged;
         none ->
             Version = erod_document_verlog:version(VerLog),
-            PageData = erodlib_indices:map(Fun, Map, Indice),
+            PageData = erodlib_indices:map(MapFun, Map, Indice),
             {entity, Version, PageSize, TotalSize, PageData};
         {patch, Version, Patch} ->
             {patch, Version, PageSize, TotalSize, Patch}
     end.
 
+
+%%% ==========================================================================
+%%% Internal Functions
+%%% ==========================================================================
 
 add_patch(Patch, #?Page{verlog = VerLog} = Page) ->
     Page#?Page{verlog = erod_document_verlog:add_patch(Patch, VerLog)}.
