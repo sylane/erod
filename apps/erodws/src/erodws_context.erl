@@ -18,7 +18,7 @@
 %%% ==========================================================================
 %%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
 %%% @author Sebastien Merle <s.merle@gmail.com>
-%%% @doc
+%%% @doc TODO: Document module erodws_context.
 %%% @end
 %%% @private
 %%% ==========================================================================
