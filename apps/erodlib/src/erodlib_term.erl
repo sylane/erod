@@ -476,4 +476,6 @@ decode_patch_path(Key, _Path) ->
 decode_patch_path_item(Item1) ->
     Item2 = binary:replace(Item1, <<"~1">>, <<"/">>, [global]),
     Item3 = binary:replace(Item2, <<"~0">>, <<"~">>, [global]),
-    try binary_to_integer(Item3) catch error:badarg -> Item3 end.
+    try binary_to_integer(Item3)
+    catch error:badarg -> erodlib:maybe_atom(Item3, Item3)
+    end.

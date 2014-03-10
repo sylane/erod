@@ -18,7 +18,7 @@
 %%% ==========================================================================
 %%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
 %%% @author Sebastien Merle <s.merle@gmail.com>
-%%% @doc TODO: Document module erod_docuemnt_page.
+%%% @doc TODO: Document module erod_document_page.
 %%% Requirments:
 %%%    - Fast Item lookup by key
 %%%    - Ordered by given comparison function
@@ -27,6 +27,7 @@
 %%%    - Keep track of the version
 %%%    - Keep a log of changes in a JSON patch-like format.
 %%% @end
+%%% @private
 %%% ==========================================================================
 
 -module(erod_document_page).
@@ -161,11 +162,11 @@ smallest(#?Page{first = Val}) ->
 
 insert(Key, Val, CompFun, Map, Page) ->
     #?Page{indice = Indice} = Page,
-    {Idx, Indice2} = erodlib_indices:insert(Key, Val, CompFun, Map, Indice),
+    {Pos, Indice2} = erodlib_indices:insert(Key, Val, CompFun, Map, Indice),
     Size = erodlib_indices:size(Indice2),
     Page2 = Page#?Page{indice = Indice2},
-    Page3 = insert_fix_barrier(Val, Idx, Size, Page2),
-    add_patch({add, [Idx], Val}, Page3).
+    Page3 = insert_fix_barrier(Val, Pos, Size, Page2),
+    add_patch({add, [Pos], Val}, Page3).
 
 
 %% -----------------------------------------------------------------
@@ -183,10 +184,10 @@ insert(Key, Val, CompFun, Map, Page) ->
 delete(Key, CompFun, Map, Page) ->
     #?Page{indice = Indice} = Page,
     Size = erodlib_indices:size(Indice),
-    {Idx, Indice2} = erodlib_indices:delete(Key, CompFun, Map, Indice),
+    {Pos, Indice2} = erodlib_indices:delete(Key, CompFun, Map, Indice),
     Page2 = Page#?Page{indice = Indice2},
-    Page3 = delete_fix_barrier(Idx, Size, Map, Page2),
-    add_patch({remove, [Idx]}, Page3).
+    Page3 = delete_fix_barrier(Pos, Size, Map, Page2),
+    add_patch({remove, [Pos]}, Page3).
 
 
 %% -----------------------------------------------------------------
@@ -233,17 +234,17 @@ update_order(Key, Val, Patch, CompFun, Map, Page) ->
     case is_local(Val, CompFun, Page) of
         false ->
             Size = erodlib_indices:size(Idx),
-            {I, Idx2} = erodlib_indices:delete(Key, Val, CompFun, Map, Idx),
+            {P, Idx2} = erodlib_indices:delete(Key, Val, CompFun, Map, Idx),
             Page2 = Page#?Page{indice = Idx2},
-            Page3 = delete_fix_barrier(I, Size, Map, Page2),
-            {deleted, add_patch([{remove, [I]}], Page3)};
+            Page3 = delete_fix_barrier(P, Size, Map, Page2),
+            {deleted, add_patch({remove, [P]}, Page3)};
         true ->
-            {I1, Idx2} = erodlib_indices:delete(Key, Val, CompFun, Map, Idx),
-            {I2, Idx3} = erodlib_indices:insert(Key, Val, CompFun, Map, Idx2),
+            {P1, Idx2} = erodlib_indices:delete(Key, Val, CompFun, Map, Idx),
+            {P2, Idx3} = erodlib_indices:insert(Key, Val, CompFun, Map, Idx2),
             Size = erodlib_indices:size(Idx3),
             Page2 = Page#?Page{indice = Idx3},
-            Page3 = update_fix_barrier(Val, I1, I2, Size, Map, Page2),
-            {ok, add_patch({move, [I1], [I2]}, add_patch(I1, Patch, Page3))}
+            Page3 = update_fix_barrier(Val, P1, P2, Size, Map, Page2),
+            {ok, add_patch({move, [P1], [P2]}, add_patch(P1, Patch, Page3))}
     end.
 
 
@@ -306,6 +307,9 @@ get_content(FromVer, MapFun, Map, #?Page{indice = Indice, verlog = VerLog}) ->
 %%% ==========================================================================
 %%% Internal Functions
 %%% ==========================================================================
+
+-spec add_patch(Patch, Page) -> Page
+    when Patch :: erod:patch_entry() | erod:patch(), Page :: page().
 
 add_patch(Patch, #?Page{verlog = VerLog} = Page) ->
     Page#?Page{verlog = erod_document_verlog:add_patch(Patch, VerLog)}.

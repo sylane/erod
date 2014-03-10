@@ -49,6 +49,8 @@
 
 -type key() :: erodlib:erod_key().
 -type version() :: erodlib:erod_version().
+-type patch_path_part() :: erodlib:erod_patch_path_part().
+-type patch_entry() :: erodlib:erod_patch_entry().
 -type patch() :: erodlib:erod_patch().
 
 -type view_id() :: atom().
@@ -83,7 +85,8 @@
 -export_type([key/0, version/0, view_id/0, page_id/0,
               user_id/0, session_id/0, session_token/0,
               content_type/0, view_spec/0, view_specs/0,
-              entity/0, entity_item/0, entity_items/0, patch/0,
+              entity/0, entity_item/0, entity_items/0,
+              patch_path_part/0, patch_entry/0, patch/0,
               content/0, page/0, policy/0,
               action_id/0, action_args/0, action/0, actions/0,
               document/0, context/0, proxy/0]).

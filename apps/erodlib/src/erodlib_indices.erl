@@ -328,8 +328,8 @@ delete(Key, CompareFun, Map, Indice) ->
 %% -----------------------------------------------------------------
 
 delete(Key, Value, CompareFun, Map, {?MODULE, Tree}) ->
-    {Idx, NewTree} = tree_delete(Key, Value, CompareFun, Map, Tree),
-    {Idx, {?MODULE, NewTree}}.
+    {Pos, NewTree} = tree_delete(Key, Value, CompareFun, Map, Tree),
+    {Pos, {?MODULE, NewTree}}.
 
 
 %% -----------------------------------------------------------------

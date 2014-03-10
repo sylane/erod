@@ -52,14 +52,16 @@
 -type erod_key() :: {atom(), erod_key_part() | list(erod_key_part())}.
 -type erod_ver_part() :: non_neg_integer() | binary().
 -type erod_version() :: list(erod_ver_part()).
--type erod_patch_path() :: [atom() | pos_integer()].
+-type erod_patch_path_part() :: atom() | binary() | pos_integer().
+-type erod_patch_path() :: [erod_patch_path_part()].
 -type erod_patch_entry() :: {remove, erod_patch_path()}
                           | {add | replace, erod_patch_path(), term()}
                           | {move | copy, erod_patch_path(), erod_patch_path()}.
 -type erod_patch() :: [erod_patch_entry()] | [].
 
 -export_type([indice/0, emap/0, eset/0, compare_fun/0, map_fun/0,
-              erod_key/0, erod_version/0, erod_patch/0]).
+              erod_key/0, erod_version/0,
+              erod_patch_path_part/0, erod_patch_entry/0, erod_patch/0]).
 
 
 

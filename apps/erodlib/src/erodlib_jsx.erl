@@ -339,6 +339,9 @@ patch_path_to_list(_Key, []) -> [];
 patch_path_to_list(Key, [Atom |Rem]) when is_atom(Atom) ->
     [$/, atom_to_list(Atom) |patch_path_to_list(Key, Rem)];
 
+patch_path_to_list(Key, [Bin |Rem]) when is_binary(Bin) ->
+    [$/, Bin |patch_path_to_list(Key, Rem)];
+
 patch_path_to_list(Key, [Num |Rem]) when is_integer(Num) ->
     [$/, integer_to_list(Num) |patch_path_to_list(Key, Rem)];
 
