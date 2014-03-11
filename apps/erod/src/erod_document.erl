@@ -336,6 +336,10 @@ create_views([{Id, PageSize, CompareFun} |Rem], Children, Map, Acc) ->
     create_views(Rem, Children, Map, [{Id, View} |Acc]).
 
 
+%%% --------------------------------------------------------------------------
+%%% Action Handling
+%%% --------------------------------------------------------------------------
+
 perform_action(get_content, [_, Ver, Subs |_], Ctx, Doc) ->
     case get_content(Ver, Doc) of
         unchanged ->

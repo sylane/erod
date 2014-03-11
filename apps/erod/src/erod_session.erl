@@ -1,11 +1,34 @@
 %%% ==========================================================================
-%%% @doc Session.
+%%% Copyright (c) 2014 Sebastien Merle <s.merle@gmail.com>
+%%%
+%%% This file is part of erod.
+%%%
+%%% Erod is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%% ==========================================================================
+%%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
+%%% @author Sebastien Merle <s.merle@gmail.com>
+%%% @doc TODO: Document module erod_sesion.
 %%% @end
 %%% @private
 %%% ==========================================================================
+
 -module(erod_session).
 
+-author('Sebastien Merle').
+
 -behaviour(gen_fsm).
+
 
 %%% ==========================================================================
 %%% Includes
@@ -18,13 +41,13 @@
 %%% Exports
 %%% ==========================================================================
 
-%%% Start/Stop functions
+%%% Process control functions
 -export([start_link/5]).
 
 %%% API functions
 -export([close/2]).
 
-%%% Internal protocol functions
+%%% Internal API functions
 -export([perform/4]).
 
 %%% Behaviour gen_fsm standard callbacks
@@ -54,8 +77,8 @@
 %%% Records
 %%% ==========================================================================
 
--record(?St, {sess_id :: pos_integer(),
-              user_id :: pos_integer(),
+-record(?St, {sess_id :: erod:session_id(),
+              user_id :: erod:user_id(),
               user :: pid(),
               policy :: erod:policy(),
               token :: binary(),
@@ -66,7 +89,7 @@
 
 
 %%% ==========================================================================
-%%% Behaviour erod_session Specification
+%%% Behaviour erod_session Specifications
 %%% ==========================================================================
 
 -callback init(Options)
@@ -75,8 +98,20 @@
 
 
 %%% ==========================================================================
-%%% Start/Stop Functions
+%%% Process Control Functions
 %%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Starts and link a session process with specified identifier and token
+%% for a given user identifier, user process and security policy.
+%% @end
+%% -----------------------------------------------------------------
+-spec start_link(SessionId, UserId, UserPid, Policy, SessionToken)
+    -> {ok, SessionPid} | {error, Reason}
+    when SessionId :: erod:session_id(), UserId :: erod:user_id(),
+         UserPid :: pid(), Policy :: erod:policy(),
+         SessionPid :: pid(), SessionToken :: binary(), Reason :: term().
+%% -----------------------------------------------------------------
 
 start_link(SessId, UserId, UserPid, Policy, Token) ->
     gen_fsm:start_link(?MODULE, [SessId, UserId, UserPid, Policy, Token], []).
@@ -86,25 +121,38 @@ start_link(SessId, UserId, UserPid, Policy, Token) ->
 %%% API Functions
 %%% ==========================================================================
 
+%% -----------------------------------------------------------------
+%% @doc Closes a session for a given reason.
+%% @end
+%% -----------------------------------------------------------------
+-spec close(SessionPid, Reason) -> ok | {error, Reason}
+    when SessionPid :: pid(), Reason :: term().
+%% -----------------------------------------------------------------
+
 close(Session, Reason) ->
     gen_fsm:sync_send_event(Session, {close, Reason}).
 
 
 %%% ==========================================================================
-%%% Internal Protocol Functions
+%%% Internal API Functions
 %%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Performs given action.
+%% @end
+%% -----------------------------------------------------------------
+-spec perform(SessionPid, Action, Args, Context) -> ok
+    when SessionPid :: pid(), Action :: erod:action_id(),
+         Args :: erod:action_args(), Context :: erod:context().
+%% -----------------------------------------------------------------
 
 perform(Session, Action, Args, Ctx) ->
     gen_fsm:send_all_state_event(Session, {perform, Action, Args, Ctx}).
 
 
 %%% ==========================================================================
-%%% Behaviour gen_fsm Callbacks
+%%% Behaviour gen_fsm Standard Callbacks
 %%% ==========================================================================
-
-%%% --------------------------------------------------------------------------
-%%% Standard callbacks
-%%% --------------------------------------------------------------------------
 
 init([SessId, UserId, UserPid, Policy, Token]) ->
     lager:info("Session ~p with token ~p started for user ~p.",
@@ -175,6 +223,10 @@ code_change(_OldVsn, StateName, State, _Extra) ->
     {ok, StateName, State}.
 
 
+%%% ==========================================================================
+%%% Behaviour gen_fsm States Callbacks
+%%% ==========================================================================
+
 %%% --------------------------------------------------------------------------
 %%% unbound state callbacks
 %%% --------------------------------------------------------------------------
@@ -221,6 +273,7 @@ bootstrap(unbound, State) ->
 continue(StateName, State) ->
     {next_state, StateName, State}.
 
+%% TODO: Enable if needed, delete otherwise.
 %% reply(Reply, StateName, State) ->
 %%     {reply, Reply, StateName, State}.
 
@@ -237,6 +290,7 @@ next(From, To, State) ->
     {next_state, To, enter(To, transition(From, To, leave(From, State)))}.
 
 
+%% TODO: Enable if needed, delete otherwise.
 %% next_reply(Reply, From, To, State) ->
 %%     {reply, Reply, To, enter(To, transition(From, To, leave(From, State)))}.
 
@@ -263,7 +317,7 @@ enter(bound, State) ->
 
 
 %%% --------------------------------------------------------------------------
-%%% Actions
+%%% Action Handling
 %%% --------------------------------------------------------------------------
 
 perform_action(StateName, restore, _Args, Ctx, State) ->
