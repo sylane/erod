@@ -211,7 +211,7 @@ failed(Reason, #?Ctx{mod = Mod, sub = Sub} = Ctx) ->
 %%% ==========================================================================
 
 %% -----------------------------------------------------------------
-%% @doc Same as lager:debug/2 with the contet log identifier prefixed.
+%% @doc Same as lager:debug/2 with the context log identifier prefixed.
 %% @end
 %% -----------------------------------------------------------------
 -spec debug(Format, Params, Context)
@@ -224,7 +224,7 @@ debug(Format, Params, #?Ctx{log_id = LogId}) ->
 
 
 %% -----------------------------------------------------------------
-%% @doc Same as lager:info/2 with the contet log identifier prefixed.
+%% @doc Same as lager:info/2 with the context log identifier prefixed.
 %% @end
 %% -----------------------------------------------------------------
 -spec info(Format, Params, Context)
@@ -237,7 +237,7 @@ info(Format, Params, #?Ctx{log_id = LogId}) ->
 
 
 %% -----------------------------------------------------------------
-%% @doc Same as lager:warning/2 with the contet log identifier prefixed.
+%% @doc Same as lager:warning/2 with the context log identifier prefixed.
 %% @end
 %% -----------------------------------------------------------------
 -spec warning(Format, Params, Context)
@@ -250,7 +250,7 @@ warning(Format, Params, #?Ctx{log_id = LogId}) ->
 
 
 %% -----------------------------------------------------------------
-%% @doc Same as lager:error/2 with the contet log identifier prefixed.
+%% @doc Same as lager:error/2 with the context log identifier prefixed.
 %% @end
 %% -----------------------------------------------------------------
 -spec error(Format, Params, Context)
