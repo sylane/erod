@@ -283,7 +283,7 @@ commit(#?Page{verlog = VerLog} = Page) ->
 -spec get_content(Version, MapFun, Map, Page)
     -> unchanged
      | {entity, Version, PageSize, TotalSize, Data}
-     | {patch, version, PageSize, TotalSize, Patch}
+     | {patch, Version, PageSize, TotalSize, Patch}
     when Version :: erod:version(), MapFun :: map_fun(), Map :: emap(),
          Page :: page(), PageSize :: non_neg_integer(),
          TotalSize :: non_neg_integer(), Data :: [term()] | [],

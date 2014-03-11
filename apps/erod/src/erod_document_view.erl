@@ -54,14 +54,20 @@
 %%% ==========================================================================
 
 -record(?View, {page_size :: pos_integer(),
-                compare_fun :: erod:compare_fun(),
-                changed_pages :: erodlib:eset(),
+                compare_fun :: compare_fun(),
+                changed_pages :: eset(),
                 pages :: erodlib:emap()}).
 
 
 %%% ==========================================================================
 %%% Types
 %%% ==========================================================================
+
+%%% Imported types
+-type compare_fun() :: erodlib:compare_fun().
+-type map_fun() :: erodlib:map_fun().
+-type eset() :: erodlib:eset().
+-type emap() :: erodlib:emap().
 
 -type view() :: #?View{}.
 -export_type([view/0]).
@@ -76,8 +82,7 @@
 %% @end
 %% -----------------------------------------------------------------
 -spec new(PageSize, CompareFun) -> View
-    when PageSize :: pos_integer(), CompareFun :: erod:compare_fun(),
-         View :: view().
+    when PageSize :: pos_integer(), CompareFun :: compare_fun(), View :: view().
 %% -----------------------------------------------------------------
 
 new(PageSize, CompareFun) ->
@@ -96,8 +101,8 @@ new(PageSize, CompareFun) ->
 %% -----------------------------------------------------------------
 -spec from_items(Items, PageSize, CompareFun, Map) -> View
     when Items :: [Item] | [], Item :: {Key, Val}, Key :: term(), Val :: term(),
-         PageSize :: pos_integer(), CompareFun :: erod:compare_fun(),
-         Map :: erod_lib:emap(), View :: view().
+         PageSize :: pos_integer(), CompareFun :: compare_fun(),
+         Map :: emap(), View :: view().
 %% -----------------------------------------------------------------
 
 from_items([], PageSize, CompareFun, _Map) ->
@@ -124,7 +129,7 @@ from_items(Items, PageSize, CompareFun, Map) ->
 %% -----------------------------------------------------------------
 %% TODO: Uncomment when implemented.
 %% -spec insert(Key, Value, Map, View) -> View
-%%     when Key :: term(), Value :: term(), Map :: erodlib:emap(), View :: view().
+%%     when Key :: term(), Value :: term(), Map :: emap(), View :: view().
 %% -----------------------------------------------------------------
 
 insert(_Key, _Value, _Map, View) ->
@@ -142,7 +147,7 @@ insert(_Key, _Value, _Map, View) ->
 %% -----------------------------------------------------------------
 %% TODO: Uncomment when implemented.
 %% -spec delete(Key, Map, View) -> View
-%%     when Key :: term(), Map :: erodlib:emap(), View :: view().
+%%     when Key :: term(), Map :: emap(), View :: view().
 %% -----------------------------------------------------------------
 
 delete(_Key, _Map, View) ->
@@ -165,7 +170,7 @@ delete(_Key, _Map, View) ->
 %% TODO: Uncomment when implemented.
 %% -spec update_inplace(Key, Value, Patch, Map, View) -> View
 %%     when Key :: term(), Value :: term(), Patch :: erod:patch(),
-%%          Map :: erodlib:emap(), View :: view().
+%%          Map :: emap(), View :: view().
 %% -----------------------------------------------------------------
 
 update_inplace(_Key, _Value, _Patch, _Map, View) ->
@@ -186,7 +191,7 @@ update_inplace(_Key, _Value, _Patch, _Map, View) ->
 %% TODO: Uncomment when implemented.
 %% -spec update_order(Key, Value, Patch, Map, View) -> View
 %%     when Key :: term(), Value :: term(), Patch :: erod:patch(),
-%%          Map :: erodlib:emap(), View :: view().
+%%          Map :: emap(), View :: view().
 %% -----------------------------------------------------------------
 
 update_order(_Key, _Value, _Patch, _Map, View) ->
@@ -217,15 +222,15 @@ commit(#?View{changed_pages = ChangedPages, pages = Pages} = View) ->
 %% @see erod_document_page:get_content/4
 %% @end
 %% -----------------------------------------------------------------
--spec get_content(PageId, Version, MapFun, Map, Page)
+-spec get_content(PageId, Version, MapFun, Map, View)
     -> unchanged
      | {error, Reason}
      | {entity, Version, PageSize, TotalSize, Data}
-     | {patch, version, PageSize, TotalSize, Patch}
+     | {patch, Version, PageSize, TotalSize, Patch}
     when PageId :: erod:page_id(), Version :: erod:version(),
-         MapFun :: erodlib:map_fun(), Map :: erodlib:emap(),
+         MapFun :: map_fun(), Map :: emap(),
          Reason :: page_not_found | term(),
-         Page :: erod_document_pager:page(), PageSize :: non_neg_integer(),
+         View :: view(), PageSize :: non_neg_integer(),
          TotalSize :: non_neg_integer(), Data :: [term()] | [],
          Patch :: erod:patch().
 %% -----------------------------------------------------------------

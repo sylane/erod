@@ -1,33 +1,92 @@
+%%% ==========================================================================
+%%% Copyright (c) 2014 Sebastien Merle <s.merle@gmail.com>
+%%%
+%%% This file is part of erod.
+%%%
+%%% Erod is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%% ==========================================================================
+%%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
+%%% @author Sebastien Merle <s.merle@gmail.com>
+%%% @doc TODO: Document module erod_document.
+%%% @end
+%%% ==========================================================================
+
 -module(erod_document).
+
+-author('Sebastien Merle').
+
+
+%%% ==========================================================================
+%%% Includes
+%%% ==========================================================================
 
 -include("erod_document.hrl").
 -include("erod_context.hrl").
 
+
+%%% ==========================================================================
+%%% Exports
+%%% ==========================================================================
+
+%%% API functions
 -export([new/3,
          key/1,
          get_content/2,
          get_children/4,
          patch_content/2,
          patch_content/3,
-         add_child/2,
-         patch_child/3]).
+         add_child/2]).
 
--export([reply/2]).
+%%% Internal API functions
+-export([reply/2,
+         handle_message/2]).
 
--export([handle_message/2]).
+%%% ==========================================================================
+%%% Macros
+%%% ==========================================================================
 
 -define(Doc, ?MODULE).
--record(?Doc, {key,
-               sub_mod,
-               sub_state,
-               content,
-               children,
-               verlog,
-               views}).
+
+
+%%% ==========================================================================
+%%% Records
+%%% ==========================================================================
+
+-record(?Doc, {key :: erod:key(),
+               mod :: module(),
+               sub :: term(),
+               content :: term(),
+               children :: emap(),
+               verlog :: verlog(),
+               views :: emap()}).
+
+
+%%% ==========================================================================
+%%% Types
+%%% ==========================================================================
+
+%%% Imported types
+-type emap() :: erodlib:emap().
+-type verlog() :: erod_document_verlog:verlog().
 
 -type document() :: #?Doc{}.
 -export_type([document/0]).
 
+
+%%% ==========================================================================
+%%% Behaviour erod_document Specification
+%%% ==========================================================================
 
 -callback init(DocKey, Options)
     -> {error, Reason}
@@ -45,20 +104,30 @@
     when ExtKey :: erod:key(), IntKey :: term().
 
 
--spec new(DocKey :: erod:key(), Module :: module(), Options :: list()) ->
-          erod:document() | {error, Reason :: term()}.
+%%% ==========================================================================
+%%% API Functions
+%%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Creates a new document with specified key, callback module and options.
+%% @end
+%% -----------------------------------------------------------------
+-spec new(DocKey, Module, Options) -> Document | {error, Reason}
+    when DocKey :: erod:key(), Module :: module(), Options :: list(),
+         Document :: document(), Reason :: term().
+%% -----------------------------------------------------------------
 
 new(DocKey, Module, Options) ->
     case Module:init(DocKey, Options) of
         {error, _Reason} = Error -> Error;
-        {ok, Content, Children, ViewSpecs, State} ->
+        {ok, Content, Children, ViewSpecs, Sub} ->
             ChildrenMap = erodlib_maps:from_items(Children),
             Views = create_views(ViewSpecs, Children, ChildrenMap),
             ViewMap = erodlib_maps:from_items(Views),
             erod_registry:register_document(DocKey, self()),
             #?Doc{key = DocKey,
-                  sub_mod = Module,
-                  sub_state = State,
+                  mod = Module,
+                  sub = Sub,
                   content = Content,
                   children = ChildrenMap,
                   verlog = erod_document_verlog:new(),
@@ -66,8 +135,33 @@ new(DocKey, Module, Options) ->
     end.
 
 
+%% -----------------------------------------------------------------
+%% @doc Gives the document's key.
+%% @end
+%% -----------------------------------------------------------------
+-spec key(Document) -> DocKey
+    when Document :: document(), DocKey :: erod:key().
+%% -----------------------------------------------------------------
+
 key(#?Doc{key = Key}) -> Key.
 
+
+%% -----------------------------------------------------------------
+%% @doc Gives the document's content.
+%%
+%% If the specified version is undefined or not found in the history
+%% the returned content's type will be 'entity' and contains the full
+%% content. If the specified version is found in the history,
+%% the returned content's type will be 'patch' and contains a cumulative
+%% patch to get to the last version from the specified version.
+%% If the content did not change since the specified version
+%% 'unchanged' is returned.
+%% @end
+%% -----------------------------------------------------------------
+-spec get_content(FromVer, Document) -> unchanged | Content
+    when FromVer :: erod:version(), Document :: document(),
+         Content :: erod:content().
+%% -----------------------------------------------------------------
 
 get_content(FromVer, Doc) ->
     #?Doc{key = DocKey, content = Content, verlog = VerLog} = Doc,
@@ -83,8 +177,28 @@ get_content(FromVer, Doc) ->
     end.
 
 
+%% -----------------------------------------------------------------
+%% @doc Gives a page of document's children for a specified view.
+%%
+%% If the specified version is undefined or not found in the history
+%% the returned content's type will be 'entity' and contains the full
+%% content. If the specified version is found in the history,
+%% the returned content's type will be 'patch' and contains a cumulative
+%% patch to get to the last version from the specified version.
+%% If the content did not change since the specified version
+%% 'unchanged' is returned.
+%% @end
+%% -----------------------------------------------------------------
+-spec get_children(ViewId, PageId, FromVer, Document)
+    -> unchanged | Content | {error, Reason}
+    when ViewId :: erod:view_id(), PageId :: erod:page_id(),
+         FromVer :: erod:version(), Document :: document(),
+         Content :: erod:content(),
+         Reason :: view_not_found | page_not_found | term().
+%% -----------------------------------------------------------------
+
 get_children(ViewId, PageId, FromVer, Doc) ->
-    #?Doc{sub_mod = Mod, children = Children, views = Views} = Doc,
+    #?Doc{mod = Mod, children = Children, views = Views} = Doc,
     case erodlib_maps:lookup(ViewId, Views) of
         none -> {error, view_not_found};
         {value, View} ->
@@ -101,9 +215,29 @@ get_children(ViewId, PageId, FromVer, Doc) ->
     end.
 
 
+%% -----------------------------------------------------------------
+%% @doc Patches the document's content.
+%% @end
+%% -----------------------------------------------------------------
+%% TODO: Enable when implemented.
+%% -spec patch_content(Patch, Document) -> {ok, Document} | {error, Reason}
+%%     when Patch :: erod:patch(), Document :: document(), Reason :: term().
+%% -----------------------------------------------------------------
+
 patch_content(_Patch, #?Doc{verlog = VerLog} = Doc) ->
     {ok, erod_document_verlog:version(VerLog), Doc}.
 
+
+%% -----------------------------------------------------------------
+%% @doc Patches the document's content if at specified version.
+%% @end
+%% -----------------------------------------------------------------
+%% TODO: Enable when implemented.
+%% -spec patch_content(Version, Patch, Document)
+%%     -> {ok, Document} | {error, Reason}
+%%     when Version :: erod:version() | undefined, Patch :: erod:patch(),
+%%          Document :: document(), Reason :: conflict | term().
+%% -----------------------------------------------------------------
 
 patch_content(undefined, Patch, Doc) ->
     patch_content(Patch, Doc);
@@ -115,23 +249,50 @@ patch_content(RefVer, Patch, #?Doc{verlog = VerLog} = Doc) ->
     end.
 
 
+%% -----------------------------------------------------------------
+%% @doc Adds a child to the document.
+%% @end
+%% -----------------------------------------------------------------
+%% TODO: Enable when implemented.
+%% -spec add_child(Child, Document) -> {ok, Document} | {error, Reason}
+%%     when Child :: term(), Document :: document(), Reason :: term().
+%% -----------------------------------------------------------------
+
 add_child(_Child, Doc) ->
     {ok, Doc}.
 
 
-patch_child(_ChildKey, _Patch, Doc) ->
-    {ok, Doc}.
+%%% ==========================================================================
+%%% Internal API Functions
+%%% ==========================================================================
 
+%% -----------------------------------------------------------------
+%% @doc Reply to a synchronous call made to a document.
+%% @end
+%% -----------------------------------------------------------------
+-spec reply(From, Reply) -> ok
+    when From :: {pid(), reference()},Reply :: term().
+%% -----------------------------------------------------------------
 
 reply({To, Tag}, Reply) ->
     try To ! {Tag, Reply} of _ -> ok catch _:_ -> ok end.
 
 
+%% -----------------------------------------------------------------
+%% @doc Delegates a message to the document. If the document do not know
+%% what to do with the message it returns 'ignored'.
+%% @end
+%% @private
+%% -----------------------------------------------------------------
+-spec handle_message(Msg, Document) -> ignored | {ok, Document}
+    when Msg :: term(), Document :: document().
+%% -----------------------------------------------------------------
+
 handle_message({'$doc_perform', Act, [K |_] = A, Ctx}, #?Doc{key = K} = Doc) ->
     {ok, perform_action(Act, A, Ctx, Doc)};
 
-handle_message({'$doc_perform', _Action, _Args, _Ctx}, _Doc) ->
-    erod_context:debug("Ignore ~p ~p: ~p", [_Action, _Args, _Doc#?Doc.key], _Ctx),
+handle_message({'$doc_perform', _Action, _Args, Ctx}, _Doc) ->
+    erod_context:failed(document_not_found, Ctx),
     ignored;
 
 handle_message({'$doc_call', Key, From, Request}, #?Doc{key = Key} = Doc) ->
@@ -147,6 +308,10 @@ handle_message({'$doc_call', _Key, _From, _Request}, _Doc) ->
 handle_message(_Msg, _Doc) ->
     ignored.
 
+
+%%% ==========================================================================
+%%% Internal Functions
+%%% ==========================================================================
 
 handle_call({get_content, FromVer, _Watcher}, _From, Doc) ->
     {reply, get_content(FromVer, Doc), Doc};

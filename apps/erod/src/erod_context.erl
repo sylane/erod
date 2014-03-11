@@ -275,7 +275,7 @@ error(Format, Params, #?Ctx{log_id = LogId}) ->
 %% -----------------------------------------------------------------
 -spec '_attach'(UserId, UserPid, SessId, SessPid, Policy, Context) -> Context
     when UserId :: erod:user_id(), UserPid :: pid(),
-         SessId :: erod:sessino_id(), SessPid :: pid(),
+         SessId :: erod:session_id(), SessPid :: pid(),
          Policy :: erod:policy(), Context :: erod:context().
 %% -----------------------------------------------------------------
 

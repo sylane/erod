@@ -90,7 +90,7 @@ new() ->
 %% @end
 %% -----------------------------------------------------------------
 -spec version(VerLog) -> Version
-    when VerLog :: verlog(), Version :: erod:ersion().
+    when VerLog :: verlog(), Version :: erod:version().
 %% -----------------------------------------------------------------
 
 version(#?VerLog{identity = Identity, version = Version}) ->
