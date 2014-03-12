@@ -74,7 +74,7 @@
 %%% ==========================================================================
 
 %% -----------------------------------------------------------------
-%% @doc Starts and links a session manager process.
+%% @doc Starts and links the session manager process.
 %% @end
 %% -----------------------------------------------------------------
 -spec start_link() -> {ok, Pid} | {error, Reason}

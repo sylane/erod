@@ -1,13 +1,53 @@
+%%% ==========================================================================
+%%% Copyright (c) 2014 Sebastien Merle <s.merle@gmail.com>
+%%%
+%%% This file is part of erod.
+%%%
+%%% Erod is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%% ==========================================================================
+%%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
+%%% @author Sebastien Merle <s.merle@gmail.com>
+%%% @doc TODO: Document module erod_user.
+%%% @end
+%%% @private
+%%% ==========================================================================
+
 -module(erod_user).
+
+-author('Sebastien Merle').
 
 -behaviour(gen_server).
 
+
+%%% ==========================================================================
+%%% Includes
+%%% ==========================================================================
+
 -include("erod_context.hrl").
 
+
+%%% ==========================================================================
+%%% Exports
+%%% ==========================================================================
+
+%%% Process control functions
 -export([start_link/1]).
 
+%%% Internal API functions
 -export([perform/4]).
 
+%%% Behaiour gen_server callbacks
 -export([init/1,
          handle_call/3,
          handle_cast/2,
@@ -15,7 +55,17 @@
          terminate/2,
          code_change/3]).
 
+
+%%% ==========================================================================
+%%% Macros
+%%% ==========================================================================
+
 -define(St, ?MODULE).
+
+
+%%% ==========================================================================
+%%% Records
+%%% ==========================================================================
 
 -record(?St, {user_id :: pos_integer(),
               mod :: module(),
@@ -23,9 +73,17 @@
               sessions = [] :: sess_list()}).
 
 
+%%% ==========================================================================
+%%% Types
+%%% ==========================================================================
+
 -type sess_entry() :: {Id :: pos_integer(), Sess :: pid()}.
 -type sess_list() :: list(sess_entry()) | [].
 
+
+%%% ==========================================================================
+%%% Behaviour erod_user Specifications
+%%% ==========================================================================
 
 -callback init(Identity, Options)
     -> {stop, Reason}
@@ -44,13 +102,43 @@
          Policy :: erod:policy(), Reason :: term().
 
 
+%%% ==========================================================================
+%%% Process Control Funtions
+%%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Starts and links a user process with specified identity.
+%% @end
+%% -----------------------------------------------------------------
+-spec start_link(UserIdentity) -> {ok, UserPid} | {error, Reason}
+    when UserIdentity :: term(), UserPid :: pid(),
+         Reason :: unknown_user | term().
+%% -----------------------------------------------------------------
+
 start_link(UserIdent) ->
     gen_server:start_link(?MODULE, [UserIdent], []).
 
 
+%%% ==========================================================================
+%%% Internal API Functions
+%%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Performs given action.
+%% @end
+%% -----------------------------------------------------------------
+-spec perform(UserPid, Action, Args, Context) -> ok
+    when UserPid :: pid(), Action :: erod:action_id(),
+         Args :: erod:action_args(), Context :: erod:context().
+%% -----------------------------------------------------------------
+
 perform(User, Action, Args, Ctx) ->
     gen_server:cast(User, {perform, Action, Args, Ctx}).
 
+
+%%% ==========================================================================
+%%% Behaviour gen_server Callacks
+%%% ==========================================================================
 
 init([UserIdent]) ->
     process_flag(trap_exit, true),
@@ -103,6 +191,9 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 
+%%% ==========================================================================
+%%% Internal Functions
+%%% ==========================================================================
 
 del_session(Pid, #?St{sessions = List} = State) when is_pid(Pid) ->
     case lists:keytake(Pid, 2, List) of
@@ -136,6 +227,10 @@ has_session(SessId, #?St{sessions = List}) when is_integer(SessId) ->
 add_session(SessId, Pid, #?St{sessions = List} = State) ->
     State#?St{sessions = [{SessId, Pid} |List]}.
 
+
+%%% --------------------------------------------------------------------------
+%%% Action Handling
+%%% --------------------------------------------------------------------------
 
 perform_action(login, [_, Credential |_], Ctx, State) ->
     perform_login(Credential, Ctx, State);

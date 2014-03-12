@@ -1,28 +1,68 @@
+%%% ==========================================================================
+%%% Copyright (c) 2014 Sebastien Merle <s.merle@gmail.com>
+%%%
+%%% This file is part of erod.
+%%%
+%%% Erod is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%% ==========================================================================
+%%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
+%%% @author Sebastien Merle <s.merle@gmail.com>
+%%% @doc TODO: Document module erod_registry.
+%%% @end
+%%% ==========================================================================
+
 -module(erod_registry).
+
+-author('Sebastien Merle').
 
 -behaviour(gen_server).
 
+
+%%% ==========================================================================
+%%% Exports
+%%% ==========================================================================
+
+%%% Process control functions
 -export([start_link/0]).
 
+%%% API functions
+-export([find_document/1,
+         get_document/1,
+         get_content/1, get_content/2, get_content/3,
+         get_children/3, get_children/4, get_children/5]).
+
+%%% Internal API functions
 -export([register_document/2,
          unregister_document/1, unregister_document/2,
-         find_document/1,
-         get_document/1,
          get_watchers/1,
          add_watcher/2,
          del_watcher/1, del_watcher/2,
-         get_content/1, get_content/2, get_content/3,
-         get_children/3, get_children/4, get_children/5,
-         notify_change/2]).
+         notify_change/2,
+         perform/3]).
 
--export([perform/3]).
-
+%%% Behaviour gen_server callbacks
 -export([init/1,
          handle_call/3,
          handle_cast/2,
          handle_info/2,
          terminate/2,
          code_change/3]).
+
+
+%%% ==========================================================================
+%%% Macros
+%%% ==========================================================================
 
 -define(PROCESS, ?MODULE).
 -define(St, ?MODULE).
@@ -32,37 +72,56 @@
 -define(DOCUMENT_PID_TO_KEY, erod_document_pid_to_key).
 
 
+%%% ==========================================================================
+%%% Records
+%%% ==========================================================================
+
 -record(?St, {factories}).
 
+
+%%% ==========================================================================
+%%% Process Control Funtions
+%%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Starts and links the registry process process.
+%% @end
+%% -----------------------------------------------------------------
+-spec start_link() -> {ok, Pid} | {error, Reason}
+    when Pid :: pid(), Reason :: term().
+%% -----------------------------------------------------------------
 
 start_link() ->
     gen_server:start_link({local, ?PROCESS}, ?MODULE, [], []).
 
 
-register_document(DocKey, DocPid) when is_pid(DocPid) ->
-    gen_server:cast(?PROCESS, {link_document, DocPid}),
-    Item = {DocKey, DocPid},
-    ets:insert(?DOCUMENT_PID_TO_KEY, Item),
-    ets:insert(?DOCUMENT_KEY_TO_PID, Item),
-    ok.
+%%% ==========================================================================
+%%% API Functions
+%%% ==========================================================================
 
-
-unregister_document(DocKey) ->
-    unregister_document_impl(DocKey, unregistered).
-
-
-unregister_document(DocKeys, DocPid) when is_list(DocKeys), is_pid(DocPid) ->
-    unregister_documents_impl(DocKeys, DocPid, unregistered);
-
-unregister_document(DocKey, DocPid) when is_pid(DocPid) ->
-    unregister_document_impl(DocKey, DocPid, unregistered).
-
+%% -----------------------------------------------------------------
+%% @doc Gives a document's PID if already started.
+%% @end
+%% -----------------------------------------------------------------
+-spec find_document(DocKey) -> {ok, DocPid} | {error, Reason}
+    when DocKey :: erod:key(), DocPid :: pid(),
+         Reason :: document_not_found | term().
+%% -----------------------------------------------------------------
 
 find_document(DocKey) ->
     try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
         DocPid -> {ok, DocPid}
     catch error:badarg -> {error, document_not_found} end.
 
+
+%% -----------------------------------------------------------------
+%% @doc Gives a document's PID. If it is not running, tries to start it.
+%% @end
+%% -----------------------------------------------------------------
+-spec get_document(DocKey) -> {ok, DocPid} | {error, Reason}
+    when DocKey :: erod:key(), DocPid :: pid(),
+         Reason :: document_not_found | term().
+%% -----------------------------------------------------------------
 
 get_document(DocKey) ->
     try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
@@ -72,47 +131,48 @@ get_document(DocKey) ->
     end.
 
 
-get_watchers(DocKey) ->
-    ets:lookup_element(?WATCHER_KEY_TO_PID, DocKey, 2).
-
-
-add_watcher(_DocKey, undefined) -> ok;
-
-add_watcher(DocKey, WatcherPid) when is_pid(WatcherPid) ->
-    gen_server:cast(?PROCESS, {link_document, WatcherPid}),
-    Item = {DocKey, WatcherPid},
-    ets:insert(?WATCHER_KEY_TO_PID, Item),
-    ets:insert(?WATCHER_PID_TO_KEY, Item),
-    try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
-        DocPid ->
-            erod_document_proc:add_watcher(DocPid, DocKey, WatcherPid)
-    catch error:badarg -> ok end.
-
-
-del_watcher(undefined) -> ok;
-
-del_watcher(WatcherPid) when is_pid(WatcherPid) ->
-    % No registration must be done for this watcher in parallele
-    gen_server:cast(?PROCESS, {unlink_document, WatcherPid}),
-    unregister_interests_impl(WatcherPid).
-
-
-del_watcher(_DocKeys, undefined) -> ok;
-
-del_watcher(DocKeys, WatcherPid) when is_list(DocKeys) ->
-    unregister_interests_impl(DocKeys, WatcherPid);
-
-del_watcher(DocKey, WatcherPid) ->
-    unregister_interest_impl(DocKey, WatcherPid).
-
+%% -----------------------------------------------------------------
+%% @doc Same as {@link get_content/3} with undefined watcher
+%% and undefined version.
+%% @end
+%% -----------------------------------------------------------------
+-spec get_content(DocKey) -> {ok, Content} | {error, Reason}
+    when DocKey :: erod:key(), Content :: erod:content(),
+         Reason :: document_not_found | term().
+%% -----------------------------------------------------------------
 
 get_content(DocKey) ->
     get_content(DocKey, undefined, undefined).
 
 
+%% -----------------------------------------------------------------
+%% @doc Same as {@link get_content/3} with undefined watcher.
+%% @end
+%% -----------------------------------------------------------------
+-spec get_content(DocKey, FromVer) -> {ok, Content} | {error, Reason}
+    when DocKey :: erod:key(), FromVer :: erod:version() | undefined,
+         Content :: erod:content(), Reason :: document_not_found | term().
+%% -----------------------------------------------------------------
+
 get_content(DocKey, FromVer) ->
     get_content(DocKey, FromVer, undefined).
 
+
+%% -----------------------------------------------------------------
+%% @doc Gives a document's full content or its changes since specified version.
+%% If a watcher process is given, it will receive notifications when
+%% the document content or status changes.
+%%
+%% If the document factory supports it, this function can return a document's
+%% content without having a document process running; the content version
+%% will not be defined though.
+%% @end
+%% -----------------------------------------------------------------
+-spec get_content(DocKey, FromVer, Watcher) -> {ok, Content} | {error, Reason}
+    when DocKey :: erod:key(), FromVer :: erod:version() | undefined,
+         Watcher :: pid() | undefined, Content :: erod:content(),
+         Reason :: document_not_found | term().
+%% -----------------------------------------------------------------
 
 get_content(DocKey, FromVer, Watcher) ->
     add_watcher(DocKey, Watcher),
@@ -129,23 +189,122 @@ get_content(DocKey, FromVer, Watcher) ->
     end.
 
 
+%% -----------------------------------------------------------------
+%% @doc Same as {@link get_children/5} with undefined watcher
+%% and undefined version.
+%% @end
+%% -----------------------------------------------------------------
+-spec get_children(DocKey, ViewId, PageId)
+    -> {ok, Content} | {error, Reason}
+    when DocKey :: erod:key(), ViewId :: erod:view_id(),
+         PageId :: erod:page_id(), Content :: erod:content(),
+         Reason :: document_not_found | view_not_found | page_not_found | term().
+%% -----------------------------------------------------------------
+
 get_children(DocKey, ViewId, PageId) ->
     get_children(DocKey, ViewId, PageId, undefined, undefined).
 
+
+%% -----------------------------------------------------------------
+%% @doc Same as {@link get_children/5} with undefined watcher.
+%% @end
+%% -----------------------------------------------------------------
+-spec get_children(DocKey, ViewId, PageId, FromVer)
+    -> {ok, Content} | {error, Reason}
+    when DocKey :: erod:key(), ViewId :: erod:view_id(),
+         PageId :: erod:page_id(), FromVer :: erod:version() | undefined,
+         Content :: erod:content(),
+         Reason :: document_not_found | view_not_found | page_not_found | term().
+%% -----------------------------------------------------------------
 
 get_children(DocKey, ViewId, PageId, FromVer) ->
     get_children(DocKey, ViewId, PageId, FromVer, undefined).
 
 
-get_children(DocKey, ViewId, PageId, FromVer, Watcher)->
+%% -----------------------------------------------------------------
+%% @doc Gives a document's page of children for a given view.
+%% It can return the full page or its changes since specified version.
+%% If a watcher process is given, it will receive
+%% notifications when the document content or status changes.
+%% @end
+%% -----------------------------------------------------------------
+-spec get_children(DocKey, ViewId, PageId, FromVer, Watcher)
+    -> {ok, Content} | {error, Reason}
+    when DocKey :: erod:key(), ViewId :: erod:view_id(),
+         PageId :: erod:page_id(), FromVer :: erod:version() | undefined,
+         Watcher :: pid() | undefined, Content :: erod:content(),
+         Reason :: document_not_found | view_not_found | page_not_found | term().
+%% -----------------------------------------------------------------
+
+get_children(DocKey, ViewId, PageId, FromVer, Watcher) ->
     add_watcher(DocKey, Watcher),
     case get_document(DocKey) of
         {error, _Reason} = Error -> Error;
         {ok, DocPid} ->
             erod_document_proc:get_children(DocPid, DocKey, ViewId,
-                                               PageId, FromVer, Watcher)
+                                            PageId, FromVer, Watcher)
     end.
 
+
+%%% ==========================================================================
+%%% Internal API Functions
+%%% ==========================================================================
+
+%% -----------------------------------------------------------------
+%% @doc Registers a PID for a document key.
+%% @end
+%% @private
+%% -----------------------------------------------------------------
+-spec register_document(DocKey, DocPid) -> ok
+    when DocKey :: erod:key(), DocPid :: pid().
+%% -----------------------------------------------------------------
+
+register_document(DocKey, DocPid) when is_pid(DocPid) ->
+    gen_server:cast(?PROCESS, {link_document, DocPid}),
+    Item = {DocKey, DocPid},
+    ets:insert(?DOCUMENT_PID_TO_KEY, Item),
+    ets:insert(?DOCUMENT_KEY_TO_PID, Item),
+    ok.
+
+
+%% -----------------------------------------------------------------
+%% @doc Removes the registration of given document key.
+%% @end
+%% @private
+%% -----------------------------------------------------------------
+-spec unregister_document(DocKey) -> ok
+    when DocKey :: erod:key().
+%% -----------------------------------------------------------------
+
+unregister_document(DocKey) ->
+    unregister_document_impl(DocKey, unregistered).
+
+
+%% -----------------------------------------------------------------
+%% @doc Remove the registration of a document key or a list of document keys
+%% for specified document process.
+%% @end
+%% @private
+%% -----------------------------------------------------------------
+-spec unregister_document(DocKeyOrKeys, DocPid) -> ok
+    when DocKeyOrKeys :: erod:key() | [erod:key()] | [], DocPid :: pid().
+%% -----------------------------------------------------------------
+
+unregister_document(DocKeys, DocPid) when is_list(DocKeys), is_pid(DocPid) ->
+    unregister_documents_impl(DocKeys, DocPid, unregistered);
+
+unregister_document(DocKey, DocPid) when is_pid(DocPid) ->
+    unregister_document_impl(DocKey, DocPid, unregistered).
+
+
+%% -----------------------------------------------------------------
+%% @doc Notifies all the watchers of given document keys of a content change.
+%% @end
+%% @private
+%% -----------------------------------------------------------------
+-spec notify_change(DocKey, Patch) -> ok
+    when DocKey :: erod:key(), Patch :: erod:patch().
+%% -----------------------------------------------------------------
 
 notify_change(DocKey, Patch) ->
     try ets:lookup_element(?WATCHER_KEY_TO_PID, DocKey, 2) of
@@ -153,9 +312,93 @@ notify_change(DocKey, Patch) ->
     catch error:badarg -> ok end.
 
 
+%% -----------------------------------------------------------------
+%% @doc Gives the list of all the watchers of given document key.
+%% @end
+%% @private
+%% -----------------------------------------------------------------
+-spec get_watchers(DocKey) -> ok
+    when DocKey :: erod:key().
+%% -----------------------------------------------------------------
+
+get_watchers(DocKey) ->
+    ets:lookup_element(?WATCHER_KEY_TO_PID, DocKey, 2).
+
+
+%% -----------------------------------------------------------------
+%% @doc Adds a watcher process for given document key.
+%% @end
+%% @private
+%% -----------------------------------------------------------------
+-spec add_watcher(DocKey, Watcher) -> ok
+    when DocKey :: erod:key(), Watcher :: pid() | undefined.
+%% -----------------------------------------------------------------
+
+add_watcher(_DocKey, undefined) -> ok;
+
+add_watcher(DocKey, WatcherPid) when is_pid(WatcherPid) ->
+    gen_server:cast(?PROCESS, {link_document, WatcherPid}),
+    Item = {DocKey, WatcherPid},
+    ets:insert(?WATCHER_KEY_TO_PID, Item),
+    ets:insert(?WATCHER_PID_TO_KEY, Item),
+    try ets:lookup_element(?DOCUMENT_KEY_TO_PID, DocKey, 2) of
+        DocPid ->
+            erod_document_proc:add_watcher(DocPid, DocKey, WatcherPid)
+    catch error:badarg -> ok end.
+
+
+%% -----------------------------------------------------------------
+%% @doc Removes a watcher; it removes the bindings for all the documents
+%% it was watching.
+%% @end
+%% @private
+%% -----------------------------------------------------------------
+-spec del_watcher(Watcher) -> ok
+    when Watcher :: pid() | undefined.
+%% -----------------------------------------------------------------
+
+del_watcher(undefined) -> ok;
+
+del_watcher(WatcherPid) when is_pid(WatcherPid) ->
+    % No registration must be done for this watcher in parallele
+    gen_server:cast(?PROCESS, {unlink_document, WatcherPid}),
+    unregister_interests_impl(WatcherPid).
+
+
+%% -----------------------------------------------------------------
+%% @doc Removes a watcher process of given document key.
+%% @end
+%% @private
+%% -----------------------------------------------------------------
+-spec del_watcher(DocKey, Watcher) -> ok
+    when DocKey :: erod:key(), Watcher :: pid() | undefined.
+%% -----------------------------------------------------------------
+
+del_watcher(_DocKeys, undefined) -> ok;
+
+del_watcher(DocKeys, WatcherPid) when is_list(DocKeys) ->
+    unregister_interests_impl(DocKeys, WatcherPid);
+
+del_watcher(DocKey, WatcherPid) ->
+    unregister_interest_impl(DocKey, WatcherPid).
+
+
+%% -----------------------------------------------------------------
+%% @doc Performs given action.
+%% @end
+%% -----------------------------------------------------------------
+-spec perform(Action, Args, Context) -> ok
+    when Action :: erod:action_id(),
+         Args :: erod:action_args(), Context :: erod:context().
+%% -----------------------------------------------------------------
+
 perform(Action, Args, Ctx) ->
     perform_outside_action(Action, Args, Ctx).
 
+
+%%% ==========================================================================
+%%% Behaviour gen_server Callacks
+%%% ==========================================================================
 
 init([]) ->
     lager:info("Registry process started.", []),
@@ -217,6 +460,10 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 
+
+%%% ==========================================================================
+%%% Internal Functions
+%%% ==========================================================================
 
 load_factories() ->
     {ok, AppName} = application:get_application(),
@@ -334,6 +581,10 @@ notify_state_impl([WatcherPid |Watchers], DocKey, State) ->
     erod_document_proc:notify_state(WatcherPid, DocKey, State),
     notify_state_impl(Watchers, DocKey, State).
 
+
+%%% --------------------------------------------------------------------------
+%%% Action Handling
+%%% --------------------------------------------------------------------------
 
 %% Running from inside the registry process
 perform_inside_action(Action, [DocKey |_] = Args, Ctx, State) ->

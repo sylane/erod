@@ -117,7 +117,7 @@ new(Module, Options) ->
 %% -----------------------------------------------------------------
 %% @doc Tells if the factory knows how to give the document content
 %% even if the document has not been started yet.
-%% If this function return true, @{link get_content/2} should return
+%% If this function return true, {@link get_content/2} should return
 %% the document content.
 %% @end
 %% -----------------------------------------------------------------
