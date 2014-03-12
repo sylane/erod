@@ -76,7 +76,7 @@
 %%% Records
 %%% ==========================================================================
 
--record(?St, {factories}).
+-record(?St, {factories :: erodlib:emap()}).
 
 
 %%% ==========================================================================
@@ -182,7 +182,7 @@ get_content(DocKey, FromVer, Watcher) ->
         case gen_server:call(?PROCESS, {get_document_for_content, DocKey}) of
             {error, _Reason} = Error -> Error;
             {ask_factory, Factory} ->
-                erod_factory:get_content(DocKey, Factory);
+                erod_document_factory:get_content(DocKey, Factory);
             {ok, Pid} ->
                 erod_document_proc:get_content(Pid, DocKey, FromVer, Watcher)
         end
@@ -469,7 +469,7 @@ load_factories() ->
     {ok, AppName} = application:get_application(),
     FactorySpecs = application:get_env(AppName, document_factories, []),
     erodlib_maps:from_items([{T, F} || {T, M, O} <- FactorySpecs,
-                          begin {ok, F} = erod_factory:new(M, O), true end]).
+                          begin {ok, F} = erod_document_factory:new(M, O), true end]).
 
 
 get_factory({Type, _Id}, #?St{factories = Factories}) ->
@@ -498,7 +498,7 @@ create_document(DocKey, Cont, State) ->
 
 %% Run in its own process
 spawn_document(DocKey, Cont, Factory) ->
-    case erod_factory:start_document(DocKey, Factory) of
+    case erod_document_factory:start_document(DocKey, Factory) of
         {ok, DocPid} -> Cont({ok, DocPid});
         {error, Reason} -> Cont({error, Reason})
     end.
@@ -512,7 +512,7 @@ get_document_for_content(DocKey, Cont, State) ->
             case get_factory(DocKey, State) of
                 none -> create_document(DocKey, Cont, State);
                 Fac ->
-                    case erod_factory:knows_content(DocKey, Fac) of
+                    case erod_document_factory:knows_content(DocKey, Fac) of
                         true -> Cont({ask_factory, Fac}), State;
                         false -> create_document(DocKey, Cont, State)
                     end

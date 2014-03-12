@@ -83,7 +83,7 @@ start_link(DocKey, FacMod, FacOpts) ->
 
 init([DocKey, FacMod, FacOpts]) ->
     lager:info("Worker process for document ~p started.", [DocKey]),
-    case erod_factory:create_document(DocKey, FacMod, FacOpts) of
+    case erod_document_factory:create_document(DocKey, FacMod, FacOpts) of
         {error, Reason} -> {stop, Reason};
         {ok, Doc} -> {ok, #?St{doc = Doc}}
     end.

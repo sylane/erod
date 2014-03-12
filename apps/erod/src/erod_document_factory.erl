@@ -18,11 +18,11 @@
 %%% ==========================================================================
 %%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
 %%% @author Sebastien Merle <s.merle@gmail.com>
-%%% @doc TODO: Document module erod_factory.
+%%% @doc TODO: Document module erod_document_factory.
 %%% @end
 %%% ==========================================================================
 
--module(erod_factory).
+-module(erod_document_factory).
 
 -author('Sebastien Merle').
 
@@ -69,7 +69,7 @@
 
 
 %%% ==========================================================================
-%%% Behaviour erod_factory Specification
+%%% Behaviour erod_document_factory Specification
 %%% ==========================================================================
 
 -callback init_factory(Options)

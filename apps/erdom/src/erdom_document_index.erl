@@ -1,6 +1,6 @@
 -module(erdom_document_index).
 
--behaviour(erod_factory).
+-behaviour(erod_document_factory).
 -behaviour(erod_document).
 
 -include("erdom_document.hrl").
