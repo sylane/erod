@@ -3,7 +3,8 @@
 
 Erlang Remote Operative Documents.
 
-!!! THIS PROJECT IS STILL IN PROTOTYPING PHASE !!!
+!!! THIS PROJECT IS STILL IN DESIGN PHASE !!!
+Not all the following features are implemented yet.
 
 It is a framework to build services for clients without reliable connection.
 
