@@ -49,7 +49,7 @@
 
 %% -----------------------------------------------------------------
 %% @doc Decodes data in specified format to a JSX term structure.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec decode(Format, Data) -> Jsx
@@ -70,7 +70,7 @@ decode(json, Json) ->
 
 %% -----------------------------------------------------------------
 %% @doc Encode a JSX term structure into specified format.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode(Format, Jsx) -> Data
@@ -90,7 +90,7 @@ encode(json, Jsx) ->
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode_str(Key, Value) -> Jsx
@@ -115,7 +115,7 @@ encode_str(Key, _Other) ->
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode_str(Key, Value, Allowed) -> Jsx
@@ -137,7 +137,7 @@ encode_str(Key, Value, Allowed) ->
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode_int(Key, Value) -> Jsx
@@ -156,7 +156,7 @@ encode_int(Key, _Value) ->
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode_bool(Key, Value) -> Jsx
@@ -183,7 +183,7 @@ encode_bool(Key, _Value) ->
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode_any(Key, Value) -> Jsx
@@ -226,7 +226,7 @@ encode_any(Key, _Other) ->
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode_key(Key, Value) -> Jsx
@@ -257,7 +257,7 @@ encode_key(Key, _Value) ->
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode_ver(Key, Value) -> Jsx
@@ -281,7 +281,7 @@ encode_ver(Key, _Value) ->
 %%
 %% The Key argument is the name of the attribute this value is for
 %% to be able to add some context to the format error.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode_patch(Key, Value) -> Jsx

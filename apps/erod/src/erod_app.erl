@@ -20,6 +20,7 @@
 %%% @author Sebastien Merle <s.merle@gmail.com>
 %%% @doc TODO: Document module erod.
 %%% @end
+%%% @private
 %%% ==========================================================================
 
 -module(erod_app).

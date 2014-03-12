@@ -49,7 +49,7 @@
 %% -----------------------------------------------------------------
 %% @doc Decodes login identity and credencial from specified data
 %% in specified format.
-%% @throws {format_error, Reason} for any decoding error.
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec decode(Fmt, Data) -> {Identity, Credential}

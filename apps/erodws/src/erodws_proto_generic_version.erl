@@ -50,7 +50,7 @@
 
 %% -----------------------------------------------------------------
 %% @doc Decodes a version identifier from specified data in specified format.
-%% @throws {format_error, Reason} for any decoding error.
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec decode(Fmt, Data) -> Version
@@ -63,7 +63,7 @@ decode(term, Term) ->
 
 %% -----------------------------------------------------------------
 %% @doc Encodes a version identifier to specified format.
-%% @throws {format_error, Reason} for any encoding error.
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode(Fmt, Version) -> Data

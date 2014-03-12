@@ -49,7 +49,7 @@
 
 %% -----------------------------------------------------------------
 %% @doc Encodes a get_children response to specified format.
-%% @throws {format_error, Reason} for any encoding error.
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode(Fmt, Response) -> Data

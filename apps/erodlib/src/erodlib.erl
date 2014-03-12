@@ -90,12 +90,20 @@ maybe_atom(Value, Default) when is_binary(Value) ->
 %% @end
 %% -----------------------------------------------------------------
 -spec bin2atom(Value) -> Result
-    when Value :: binary() | atom(), Result :: atom().
+    when Value :: binary(), Result :: atom().
 %% -----------------------------------------------------------------
 
 bin2atom(Value) when is_binary(Value) ->
     erlang:binary_to_atom(Value, utf8).
 
+
+%% -----------------------------------------------------------------
+%% @doc Converts an atom to a binary.
+%% @end
+%% -----------------------------------------------------------------
+-spec atom2bin(Value) -> Result
+    when Value :: atom(), Result :: binary().
+%% -----------------------------------------------------------------
 
 atom2bin(Value) when is_atom(Value) ->
     erlang:atom_to_binary(Value, utf8).

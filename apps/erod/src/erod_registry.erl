@@ -86,6 +86,7 @@
 %% -----------------------------------------------------------------
 %% @doc Starts and links the registry process process.
 %% @end
+%% @private
 %% -----------------------------------------------------------------
 -spec start_link() -> {ok, Pid} | {error, Reason}
     when Pid :: pid(), Reason :: term().
@@ -386,6 +387,7 @@ del_watcher(DocKey, WatcherPid) ->
 %% -----------------------------------------------------------------
 %% @doc Performs given action.
 %% @end
+%% @private
 %% -----------------------------------------------------------------
 -spec perform(Action, Args, Context) -> ok
     when Action :: erod:action_id(),
@@ -400,6 +402,7 @@ perform(Action, Args, Ctx) ->
 %%% Behaviour gen_server Callacks
 %%% ==========================================================================
 
+%% @private
 init([]) ->
     lager:info("Registry process started.", []),
     process_flag(trap_exit, true),
@@ -411,6 +414,7 @@ init([]) ->
     {ok, #?St{factories = Factories}}.
 
 
+%% @private
 handle_call({get_document_for_content, DocKey}, From, State) ->
     Cont = fun(Result) -> gen_server:reply(From, Result) end,
     {noreply, get_document_for_content(DocKey, Cont, State)};
@@ -424,6 +428,7 @@ handle_call(Request, {From, _Ref}, State) ->
     {stop, {unexpected_call, Request, From}, {error, unexpected_call}, State}.
 
 
+%% @private
 handle_cast({perform, Action, Args, Ctx}, State) ->
     {noreply, perform_inside_action(Action, Args, Ctx, State)};
 
@@ -440,6 +445,7 @@ handle_cast(Request, State) ->
     {stop, {unexpected_cast, Request}, State}.
 
 
+%% @private
 handle_info({'EXIT', Pid, _Reason}, State) ->
     lager:debug("Registry's document ~p died, cleaning up.", [Pid]),
     unregister_interests_impl(Pid),
@@ -451,11 +457,13 @@ handle_info(Info, State) ->
     {noreply, State}.
 
 
+%% @private
 terminate(Reason, _State) ->
     lager:info("Registry process terminated: ~p", [Reason]),
     ok.
 
 
+%% @private
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 

@@ -50,7 +50,7 @@
 
 %% -----------------------------------------------------------------
 %% @doc Decodes an error record from specified data in specified format.
-%% @throws {format_error, Reason} for any decoding error.
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec decode(Fmt, Data) -> Error
@@ -66,7 +66,7 @@ decode(term, Term) ->
 
 %% -----------------------------------------------------------------
 %% @doc Encodes an error record to specified format.
-%% @throws {format_error, Reason} for any encoding error.
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode(Fmt, Error) -> Data

@@ -9,3 +9,7 @@ rel/erod
 rebar
 test/*.beam
 test/logs
+apps/erdom/doc/
+apps/erod/doc/
+apps/erodlib/doc/
+apps/erodws/doc

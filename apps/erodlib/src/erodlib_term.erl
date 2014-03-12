@@ -54,7 +54,7 @@
 %% @doc Decodes data in specified format to erlang an terms.
 %% The objects/dictionaries are decoded to property list where keys
 %% may be binaries if there is no already existing atoms defined for them.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec decode(Format, Data) -> Term
@@ -66,7 +66,7 @@ decode(jsx, Jsx) -> decode_jsx_value(Jsx).
 
 %% -----------------------------------------------------------------
 %% @doc Encodes an erlang term into specified format.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode(Format, Term) -> Data
@@ -81,7 +81,7 @@ encode(jsx, Term) -> encode_jsx_value(Term).
 %%
 %% If the term doesn't contains the specified key or the value cannot
 %% be converted to the wanted type, a format error is thrown.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec get_atom(Key, Term) -> Value
@@ -99,7 +99,7 @@ get_atom(Key, Term) ->
 %% If the term doesn't contains the specified key or the value cannot
 %% be converted to the wanted type or the value is not allowed,
 %% a format error is thrown.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec get_allowed_atom(Key, Term, Allowed) -> Value
@@ -116,7 +116,7 @@ get_allowed_atom(Key, Term, Allowed) ->
 %%
 %% If the term doesn't contains the specified key or the value cannot
 %% be converted to the wanted type, a format error is thrown.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec get_int(Key, Term) -> Value
@@ -132,7 +132,7 @@ get_int(Key, Term) ->
 %%
 %% If the term doesn't contains the specified key or the value cannot
 %% be converted to the wanted type, a format error is thrown.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec get_bin(Key, Term) -> Value
@@ -148,7 +148,7 @@ get_bin(Key, Term) ->
 %% or return a default value otherwise.
 %%
 %% If the value cannot be converted to the wanted type, a format error is thrown.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec get_bin(Key, Term, Default) -> Value
@@ -164,7 +164,7 @@ get_bin(Key, Term, Default) ->
 %% @doc Gets a value from an erlang term.
 %%
 %% If the term doesn't contains the specified key, a format error is thrown.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec get_any(Key, Term) -> Value
@@ -194,7 +194,7 @@ get_any(Key, Term, Default) ->
 %%
 %% If the term doesn't contains the specified key or the value cannot
 %% be converted to the wanted type, a format error is thrown.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec get_key(Key, Term) -> Value
@@ -210,7 +210,7 @@ get_key(Key, Term) ->
 %% or return a default value otherwise.
 %%
 %% If the value cannot be converted to the wanted type, a format error is thrown.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec get_ver(Key, Term, Default) -> Value
@@ -227,7 +227,7 @@ get_ver(Key, Term, Default) ->
 %% or return a default value otherwise.
 %%
 %% If the value cannot be converted to the wanted type, a format error is thrown.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec get_bool(Key, Term, Default) -> Value
@@ -244,7 +244,7 @@ get_bool(Key, Term, Default) ->
 %%
 %% If the term doesn't contains the specified key or the value cannot
 %% be converted to the wanted type, a format error is thrown.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec get_patch(Key, Term) -> Value
@@ -260,7 +260,7 @@ get_patch(Key, Term) ->
 %% @doc Ensures the specified key is not present in the term.
 %%
 %% If the term contains the specified key a format error is thrown.
-%% @throws {format_error, Reason}
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec ensure_undefined(Key, Term) -> undefined

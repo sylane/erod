@@ -48,7 +48,7 @@
 
 %% -----------------------------------------------------------------
 %% @doc Decodes restore identity and token from specified data.
-%% @throws {format_error, Reason} for any decoding error.
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec decode(Fmt, Data) -> {Identity, Token}

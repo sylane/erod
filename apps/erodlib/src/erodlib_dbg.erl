@@ -20,6 +20,7 @@
 %%% @author Sebastien Merle <s.merle@gmail.com>
 %%% @doc TODO: Document module erodlib_dbg.
 %%% @end
+%%% @private
 %%% ==========================================================================
 
 -module(erodlib_dbg).

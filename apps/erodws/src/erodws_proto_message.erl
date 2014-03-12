@@ -59,7 +59,7 @@
 
 %% -----------------------------------------------------------------
 %% @doc Decodes a message from specified data in specified format.
-%% @throws {format_error, Reason} for any decoding error.
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec decode(Fmt, Data) -> Message
@@ -86,7 +86,7 @@ decode(term, Term) ->
 
 %% -----------------------------------------------------------------
 %% @doc Encode a message to specified format.
-%% @throws {format_error, Reason} for any encoding error.
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode(Fmt, Message) -> Data
@@ -105,7 +105,7 @@ encode(Fmt, _Any) ->
 
 %% -----------------------------------------------------------------
 %% @doc Encode an erlang error as a message in specified format.
-%% @throws {format_error, Reason} for any encoding error.
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode_error(Fmt, Cls, Error) -> Data
@@ -124,7 +124,7 @@ encode_error(Fmt, Cls, Error) ->
 
 %% -----------------------------------------------------------------
 %% @doc Encode an erlang error as a reply message in specified format.
-%% @throws {format_error, Reason} for any encoding error.
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode_error_reply(Fmt, Cls, Id, Error) -> Data
@@ -144,7 +144,7 @@ encode_error_reply(Fmt, Cls, Id, Error) ->
 
 %% -----------------------------------------------------------------
 %% @doc Encode a result as a reply message in specified format.
-%% @throws {format_error, Reason} for any encoding error.
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode_result_reply(Fmt, Cls, Id, Status, Result) -> Data
@@ -234,6 +234,7 @@ encode_data(_Fmt, _Type, _Cls, _Data) ->
 
 
 %%TODO: Enable when needed or delete.
+%%@doc@end
 %% encode_message(jsx, request, C, I, undefined, undefined) ->
 %%     [{<<"type">>, <<"request">>},
 %%      {<<"id">>, erodlib_jsx:encode_str(id, I)},

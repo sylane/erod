@@ -35,14 +35,14 @@
 -export([get_content/3,
          get_content/4,
          get_children/5,
-         get_children/6,
-         add_watcher/3,
-         del_watcher/3,
-         notify_change/3,
-         notify_state/3]).
+         get_children/6]).
 
 %%% Internal API functions
--export([perform/4]).
+-export([add_watcher/3,
+         del_watcher/3,
+         notify_change/3,
+         notify_state/3,
+         perform/4]).
 
 
 %%% ==========================================================================
@@ -125,9 +125,14 @@ get_children(DocPid, DocKey, ViewId, PageId, FromVer, Watcher) ->
     call(DocPid, DocKey, {get_children, ViewId, PageId, FromVer, Watcher}).
 
 
+%%% ==========================================================================
+%%% Inernal API Functions
+%%% ==========================================================================
+
 %% -----------------------------------------------------------------
 %% @doc Adds a process to a document watcher list.
 %% @end
+%% @private
 %% -----------------------------------------------------------------
 %% TODO: Uncomment when implemented.
 %% -spec add_watcher(DocPid, DocKey, Watcher) -> ok | {error, Reason}
@@ -142,6 +147,7 @@ add_watcher(_DocPid, _DocKey, _Watcher) ->
 %% -----------------------------------------------------------------
 %% @doc Removes a process from a document watcher list.
 %% @end
+%% @private
 %% -----------------------------------------------------------------
 %% TODO: Uncomment when implemented.
 %% -spec del_watcher(DocPid, DocKey, Watcher) -> ok | {error, Reason}
@@ -156,6 +162,7 @@ del_watcher(_DocPid, _DocKey, _Watcher) ->
 %% -----------------------------------------------------------------
 %% @doc Notifies a document of a content change from a document it watches.
 %% @end
+%% @private
 %% -----------------------------------------------------------------
 %% TODO: Uncomment when implemented.
 %% -spec notify_change(WatcherPid, DocKey, Patch) -> ok | {error, Reason}
@@ -170,6 +177,7 @@ notify_change(_WatcherPid, _DocKey, _Patch) ->
 %% -----------------------------------------------------------------
 %% @doc Notifies a document of a state change from a document it watches.
 %% @end
+%% @private
 %% -----------------------------------------------------------------
 %% TODO: Uncomment when implemented.
 %% -spec notify_state(WatcherPid, DocKey, Patch) -> ok | {error, Reason}
@@ -179,11 +187,6 @@ notify_change(_WatcherPid, _DocKey, _Patch) ->
 
 notify_state(_WatcherPid, _DocKey, _StateName) ->
     ok.
-
-
-%%% ==========================================================================
-%%% Internal API Functions
-%%% ==========================================================================
 
 %% -----------------------------------------------------------------
 %% @doc Performs an action for a document of specified process.

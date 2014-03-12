@@ -48,7 +48,7 @@
 
 %% -----------------------------------------------------------------
 %% @doc Encodes a get_content response to specified format.
-%% @throws {format_error, Reason} for any encoding error.
+%% @throws {format_error, Reason :: term()}
 %% @end
 %% -----------------------------------------------------------------
 -spec encode(Fmt, Response) -> Data
