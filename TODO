@@ -12,3 +12,5 @@ TODO:
   * Implement erod_shelf that contains multiple documents.
   * Make the erod_user process a shelf for user-specific documents.
   * Move patch related functions out in its own erlib_patch module.
+  * Supports different children format per view.
+  
