@@ -18,7 +18,7 @@
 %%% ==========================================================================
 %%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
 %%% @author Sebastien Merle <s.merle@gmail.com>
-%%% @doc TODO: Document module erod_actions.
+%%% @doc TODO: Document module erdom_storage.
 %%% @end
 %%% ==========================================================================
 
