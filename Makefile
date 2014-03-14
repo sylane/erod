@@ -46,7 +46,9 @@ distclean: clean
 # Do not removes deps that are links	
 	@find deps -type d '!' -name deps -prune -exec rm -rf {} ';' || exit 0
 
-rebar:
-	@mkdir -p deps || exit 0 
-	@git clone https://github.com/rebar/rebar.git deps/rebar
+rebar: deps/rebar
 	@(cd deps/rebar; escript bootstrap; mv rebar ../..)
+
+deps/rebar:
+	@mkdir -p deps 
+	@git clone https://github.com/rebar/rebar.git deps/rebar

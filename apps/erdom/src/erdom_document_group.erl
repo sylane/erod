@@ -1,29 +1,81 @@
+%%% ==========================================================================
+%%% Copyright (c) 2014 Sebastien Merle <s.merle@gmail.com>
+%%%
+%%% This file is part of erdom.
+%%%
+%%% Erdom is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%% ==========================================================================
+%%% @copyright 2014 Sebastien Merle <s.merle@gmail.com>
+%%% @author Sebastien Merle <s.merle@gmail.com>
+%%% @doc TODO: Document module erod_actions.
+%%% @end
+%%% ==========================================================================
+
 -module(erdom_document_group).
+
+-author('Sebastien Merle').
 
 -behaviour(erod_document_factory).
 -behaviour(erod_document).
 
+
+%%% ==========================================================================
+%%% Icludes
+%%% ==========================================================================
+
 -include("erdom_document.hrl").
 -include("erdom_storage.hrl").
 
+
+%%% ==========================================================================
+%%% Exports
+%%% ==========================================================================
+
+%%% Behaviour erod_document_factory callbacks
 -export([init_factory/1,
          knows_content/2,
          get_content/2,
          start_document/2,
          create_document/2]).
 
+%%% Behaviour erod_document callbacks
 -export([init/2,
          export_child_key/1,
          import_child_key/1]).
 
--define(St, ?MODULE).
--record(?St, {}).
--record(fac, {}).
 
+%%% ==========================================================================
+%%% Macros
+%%% ==========================================================================
+
+-define(St, ?MODULE).
 -define(UserContent, erdom_document_user_content).
 -define(Content, erdom_document_group_content).
 -define(Child, erdom_document_group_child).
 
+
+%%% ==========================================================================
+%%% Records
+%%% ==========================================================================
+
+-record(?St, {}).
+-record(fac, {}).
+
+
+%%% ==========================================================================
+%%% Behaviour erod_document_factory Callbacks
+%%% ==========================================================================
 
 init_factory([]) ->
     {ok, #fac{}}.
@@ -51,6 +103,10 @@ create_document(DocKey, Options) ->
     {ok, erod_document:new(DocKey, ?MODULE, Options)}.
 
 
+%%% ==========================================================================
+%%% Behaviour erod_document Callbacks
+%%% ==========================================================================
+
 init(DocKey, []) ->
     Views = [{asc, 50, fun compare_asc/2},
              {desc, 50, fun compare_desc/2},
@@ -72,6 +128,9 @@ export_child_key(Key) -> {user, Key}.
 import_child_key({user, Key}) -> Key.
 
 
+%%% ==========================================================================
+%%% Internal Functions
+%%% ==========================================================================
 
 compare_asc(#?Child{name = A}, #?Child{name = B}) -> A =< B.
 
