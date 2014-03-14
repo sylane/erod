@@ -8,11 +8,11 @@ all: rebar
 	@./rebar compile
 
 #release: xref dialyze test fast-release
-release: xref dialyze fast-release
+release: dialyze fast-release
 
 fast-release: all
 	@rm -rf rel/$(APPLICATION) || exit 0
-	@rebar generate
+	@./rebar generate
 
 test: all
 	@./rebar ct skip_deps=true
