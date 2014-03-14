@@ -8,7 +8,7 @@ all: rebar
 	@./rebar compile
 
 #release: xref dialyze test fast-release
-release: dialyze fast-release
+release: xref dialyze fast-release
 
 fast-release: all
 	@rm -rf rel/$(APPLICATION) || exit 0
