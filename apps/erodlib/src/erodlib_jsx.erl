@@ -94,11 +94,14 @@ encode(json, Jsx) ->
 %% @end
 %% -----------------------------------------------------------------
 -spec encode_str(Key, Value) -> Jsx
-    when Key :: atom(), Value :: binary() | atom() | term(),
+    when Key :: atom(), Value :: list() | binary() | atom() | term(),
          Jsx :: jsx:json_term().
 %% -----------------------------------------------------------------
 
 encode_str(_Key, Bin) when is_binary(Bin) -> Bin;
+
+encode_str(_Key, List) when is_list(List) ->
+	unicode:characters_to_binary(List);
 
 encode_str(_Key, Atom) when is_atom(Atom) ->
     atom_to_binary(Atom, utf8);
