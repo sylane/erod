@@ -3,7 +3,7 @@ APPLICATION=erod
 DIALYZER_WARNINGS = -Wunmatched_returns -Werror_handling -Wrace_conditions
 
 all: rebar
-	@./rebar get-deps
+	@./rebar update-deps
 	@rm -rf ./ebin || exit 0
 	@./rebar compile
 

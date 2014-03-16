@@ -1,0 +1,16 @@
+{application, dummy,
+ [{description, "Dummy erod application mean for testing"},
+  {vsn, "0.1"},
+  {registered, []},
+  {applications,
+   [kernel,
+    stdlib,
+    sasl,
+    lager,
+    cowboy,
+    jsx,
+    erod
+   ]},
+  {mod, {dummy_app, []}},
+  {env, []}
+ ]}.
