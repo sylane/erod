@@ -84,6 +84,7 @@ close(WebSocket) ->
 %%% ==========================================================================
 
 init([Pid], _ConnState) ->
+	process_flag(trap_exit, true),
     {ok, #?St{pid = Pid}}.
 
 
@@ -99,7 +100,7 @@ websocket_handle({text, Msg}, _ConnState, #?St{pid = Pid} = State) ->
     Data = try erodlib_jsx:decode(json, Msg)
            catch {format_error, _} -> Msg
 		   end,
-    Pid ! {received, Data},
+    Pid ! {received, self(), Data},
     {ok, State}.
 
 
@@ -114,7 +115,7 @@ websocket_info(Info, _ConnState, State) ->
     {close, <<>>, State}.
 
 
-websocket_terminate({close, Code, Payload}, _ConnState, #?St{pid = Pid}) ->
-    ct:pal("Websocket closed with code ~p and payload ~p~n", [Code, Payload]),
-    Pid ! closed,
+websocket_terminate(Info, _ConnState, #?St{pid = Pid}) ->
+    ct:pal("Websocket closed: ~p~n", [Info]),
+    Pid ! {closed, self()},
     ok.

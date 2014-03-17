@@ -8,9 +8,15 @@ deps/
 *.dump
 rel/erod
 rebar
-test/*.beam
-test/logs
 apps/erdom/doc/
+apps/erdom/test/*.beam
+apps/erdom/test/logs
 apps/erod/doc/
+apps/erod/test/*.beam
+apps/erod/test/logs
 apps/erodlib/doc/
+apps/erdlib/test/*.beam
+apps/erdlib/test/logs
 apps/erodws/doc
+apps/erodws/test/*.beam
+apps/erodws/test/logs

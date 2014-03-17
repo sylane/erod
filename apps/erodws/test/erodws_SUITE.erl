@@ -32,10 +32,13 @@
 
 
 %%% ==========================================================================
-%%% Includes
+%%% Exports
 %%% ==========================================================================
 
--export([garbage_packet/1]).
+-export([garbage_packet/1,
+		 incomplete_packet/1,
+		 invalid_packet_type/1,
+		 request_without_id/1]).
 
 %%% Common test functions
 -export([all/0,
@@ -47,10 +50,27 @@
 
 
 %%% ==========================================================================
+%%% Macros
+%%% ==========================================================================
+
+-define(TIMEOUT, 2000).
+
+-define(assertClosed(Pid),
+		receive
+			{closed, Pid} -> ok
+	    after ?TIMEOUT ->
+			ct:fail("Connection not closed")
+        end).
+
+
+%%% ==========================================================================
 %%% common_test callbacks
 %%% ==========================================================================
 
-all() -> [garbage_packet].
+all() -> [garbage_packet,
+		  incomplete_packet,
+		  invalid_packet_type,
+		  request_without_id].
 
 
 suite() -> [{timetrap, {seconds, 10}}].
@@ -85,7 +105,31 @@ end_per_suite(_Config) ->
 %%% Tests
 %%% ==========================================================================
 
-garbage_packet(_Conf) ->
+garbage_packet(Conf) ->
+	Cli = ?config(client, Conf),
+	dummy_client:send(Cli, <<"!@#$">>),
+	?assertClosed(Cli),
+	ok.
+
+
+incomplete_packet(Conf) ->
+	Cli = ?config(client, Conf),
+	dummy_client:send(Cli, <<"{\"request\":">>),
+	?assertClosed(Cli),
+	ok.
+
+
+invalid_packet_type(Conf) ->
+	Cli = ?config(client, Conf),
+	dummy_client:send(Cli, <<"{\"type\":\"spam\",\"cls\":\"login\"}">>),
+	?assertClosed(Cli),
+	ok.
+
+
+request_without_id(Conf) ->
+	Cli = ?config(client, Conf),
+	dummy_client:send(Cli, <<"{\"type\":\"request\",\"cls\":\"login\"}">>),
+	?assertClosed(Cli),
 	ok.
 
 
@@ -99,5 +143,5 @@ wait_terminated(Pid) ->
     Ref = monitor(process, Pid),
     receive
         {'DOWN', Ref, process, Pid, Reason} -> Reason
-    after 2000 -> ct:fail("Process ~w not terminated", [Pid])
+    after ?TIMEOUT -> ct:fail("Process ~w not terminated", [Pid])
     end.

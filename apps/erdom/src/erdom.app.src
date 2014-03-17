@@ -9,7 +9,8 @@
     lager,
     cowboy,
     jsx,
-    erod
+    erod,
+    erodws
    ]},
   {mod, {erdom_app, []}},
   {env, []}
